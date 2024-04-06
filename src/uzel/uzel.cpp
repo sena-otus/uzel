@@ -1,5 +1,8 @@
 #include "uzel.h"
 
+#include <boost/property_tree/json_parser.hpp>
+#include <iostream>
+#include <sstream>
 #include <utility>
 
 namespace uzel {
@@ -8,8 +11,35 @@ namespace uzel {
   {
   }
 
-  Msg::Msg(Addr dest)
-    : m_dest(std::move(dest))
+  Msg::Msg(Msg::bpt_t &&header, std::string &&body)
+    : m_header(header), m_body(body)
   {}
 
+  bool MsgQueue::processNewInput(std::string_view input)
+  {
+    m_acculine.addNewInput(input);
+    std::optional<std::string> line;
+    while((line = m_acculine.getNextCmd())) {
+      if(!m_header) { // parsing msg header
+        std::istringstream is(*line);
+        try {
+          m_header = boost::property_tree::ptree();
+          boost::property_tree::read_json(is, *m_header);
+          auto tostr = m_header->get_optional<std::string>("to.name");
+          if(tostr) {
+            std::cout << "got header of the msg for " << *tostr << "\n";
+          }
+        }
+        catch (...) {
+          std::cerr << "Closing connection because can not parse received json header " << *line << "\n";
+          return false;
+        }
+        continue;
+      }
+        // create msg
+      m_mqueue.emplace(std::move(*m_header), std::move(*line));
+      m_header.reset();
+    }
+    return true;
+  }
 }

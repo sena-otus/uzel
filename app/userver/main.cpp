@@ -14,21 +14,15 @@ int main(int argc, char* argv[])
     if (argc != 3)
     {
       std::cout << "Usage\n"
-                <<"  bulk_server <tcp port> <block size>\n"
-                << "\n"
-                << "Where"
-                << "  <tcp port>   is tcp port to listen for incoming connections\n"
-                << "  <block size> is command block size\n"
-                << "\n"
-                << "Example"
-                << "  bulk_server 9300 3\n";
+                <<"  userver\n"
+                << "\n";
       return 0;
     }
 
     boost::asio::io_context io_context;
 
       //NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    const NetApp server(io_context, std::stoul(argv[1]), std::stoul(argv[2]));
+    const NetApp server(io_context, 32300);
 
     io_context.run();
   }

@@ -2,7 +2,7 @@
 
 using boost::asio::ip::tcp;
 
-session::session(tcp::socket socket, unsigned N)
+session::session(tcp::socket socket)
   : m_socket(std::move(socket)), m_data{0}
 {
 }
@@ -25,7 +25,7 @@ void session::do_read()
       {
         if (!ec)
         {
-            //         async::receive(m_handle, m_data.data(), length);
+          m_inMsgQueue.processNewInput(std::string_view(m_data.data(), length));
           do_read();
         }
       });

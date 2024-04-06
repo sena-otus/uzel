@@ -1,5 +1,8 @@
 #pragma once
 
+#include "uzel/uzel.h"
+#include <uzel/acculine.h>
+
 #include <utility>
 #include <boost/asio.hpp>
 #include <memory>
@@ -9,7 +12,7 @@ class session
   : public std::enable_shared_from_this<session>
 {
 public:
-  session(boost::asio::ip::tcp::socket socket, unsigned N);
+  explicit session(boost::asio::ip::tcp::socket socket);
   ~session();
 
   session(const session &other) = delete;
@@ -22,6 +25,7 @@ private:
   void do_read();
 
   boost::asio::ip::tcp::socket m_socket;
-  enum { max_length = 1024 };
+  enum { max_length = 1024*1024 };
   std::array<char, max_length> m_data;
+  uzel::MsgQueue m_inMsgQueue;
 };
