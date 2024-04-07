@@ -1,5 +1,7 @@
 #include "session.h"
 
+#include <iostream>
+
 using boost::asio::ip::tcp;
 
 session::session(tcp::socket socket)
@@ -25,8 +27,13 @@ void session::do_read()
       {
         if (!ec)
         {
-          m_inMsgQueue.processNewInput(std::string_view(m_data.data(), length));
-          do_read();
+          if(m_inMsgQueue.processNewInput(std::string_view(m_data.data(), length)))
+          {
+            do_read();
+          }
+          else {
+            std::cout << "close connection\n";
+          }
         }
       });
 }

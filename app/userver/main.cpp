@@ -11,14 +11,6 @@ int main(int argc, char* argv[])
 {
   try
   {
-    if (argc != 3)
-    {
-      std::cout << "Usage\n"
-                <<"  userver\n"
-                << "\n";
-      return 0;
-    }
-
     boost::asio::io_context io_context;
 
       //NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)

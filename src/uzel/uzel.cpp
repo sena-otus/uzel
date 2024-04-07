@@ -25,10 +25,9 @@ namespace uzel {
         try {
           m_header = boost::property_tree::ptree();
           boost::property_tree::read_json(is, *m_header);
-          auto tostr = m_header->get_optional<std::string>("to.name");
-          if(tostr) {
-            std::cout << "got header of the msg for " << *tostr << "\n";
-          }
+          auto host = m_header->get<std::string>("to.h", "?");
+          auto appn = m_header->get<std::string>("to.n", "?");
+          std::cout << "got header of the msg for " << appn << "@"  << host << "\n";
         }
         catch (...) {
           std::cerr << "Closing connection because can not parse received json header " << *line << "\n";
