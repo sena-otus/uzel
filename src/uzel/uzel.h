@@ -7,8 +7,20 @@
 #include <string>
 #include <queue>
 
+class GConfig
+{
+public:
+  static GConfig& GConfigS();
+  std::string nodeName();
+private:
+};
+
+
+
+
 namespace uzel
 {
+
   class Addr
   {
   public:
@@ -25,6 +37,8 @@ namespace uzel
     explicit Msg(ptree &&header, std::string &&body);
     explicit Msg(ptree &&header, ptree &&body);
     void addPayload();
+
+    [[nodiscard]] bool isLocal() const;
   private:
     boost::property_tree::ptree m_header; //!< message header
     std::variant<std::string,boost::property_tree::ptree> m_body; //!< unpared/parsed message body
@@ -34,6 +48,7 @@ namespace uzel
   {
   public:
     bool processNewInput(std::string_view input);
+    void processQueue();
   private:
     std::queue<Msg> m_mqueue;
     AccuLine m_acculine;

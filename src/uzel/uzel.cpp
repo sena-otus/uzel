@@ -6,6 +6,21 @@
 #include <sstream>
 #include <utility>
 
+
+std::string
+GConfig::nodeName()
+{
+  return "believer";
+}
+
+GConfig& GConfig::GConfigS()
+{
+  static GConfig gconfig;
+  return gconfig;
+}
+
+
+
 namespace uzel {
   Addr::Addr(std::string appname, std::string hostname)
     : m_appname(std::move(appname)), m_hostname(std::move(hostname))
@@ -19,6 +34,18 @@ namespace uzel {
   Msg::Msg(Msg::ptree &&header, Msg::ptree &&body)
     : m_header(header), m_body(body)
   {}
+
+  bool Msg::isLocal() const
+  {
+    auto to = m_header.get_optional<std::string>("to.h");
+    if(!to) return true;
+    if(*to == "localhost" || *to == GConfig::GConfigS().nodeName())
+    {
+      return true;
+    }
+    return false;
+  }
+
 
   bool MsgQueue::processNewInput(std::string_view input)
   {
@@ -51,6 +78,19 @@ namespace uzel {
       m_mqueue.emplace(std::move(*m_header), std::move(*line));
       m_header.reset();
     }
+    processQueue();
     return true;
+  }
+
+  void MsgQueue::processQueue()
+  {
+    while(!m_mqueue.empty())
+    {
+      auto msg = m_mqueue.front();
+      if(msg.isLocal()) {
+
+      }
+      m_mqueue.pop();
+    }
   }
 }
