@@ -20,13 +20,14 @@ namespace uzel
 
   class Msg
   {
-    using bpt_t = boost::property_tree::ptree;
   public:
-    explicit Msg(bpt_t &&header, std::string &&body);
+    using ptree = boost::property_tree::ptree;
+    explicit Msg(ptree &&header, std::string &&body);
+    explicit Msg(ptree &&header, ptree &&body);
     void addPayload();
   private:
-    boost::property_tree::ptree m_header;
-    std::variant<std::string,boost::property_tree::ptree> m_body;
+    boost::property_tree::ptree m_header; //!< message header
+    std::variant<std::string,boost::property_tree::ptree> m_body; //!< unpared/parsed message body
   };
 
   class MsgQueue
