@@ -4,6 +4,7 @@
 #include <boost/property_tree/ptree_fwd.hpp>
 #include <iostream>
 #include <sstream>
+#include <string_view>
 #include <utility>
 
 
@@ -29,22 +30,51 @@ namespace uzel {
 
   Msg::Msg(Msg::ptree &&header, std::string &&body)
     : m_header(header), m_body(body)
-  {}
+  {
+    checkDestHost();
+  }
 
   Msg::Msg(Msg::ptree &&header, Msg::ptree &&body)
     : m_header(header), m_body(body)
-  {}
+  {
+    checkDestHost();
+  }
+
+  void Msg::checkDestHost()
+  {
+    m_destType = DestType::local;
+    auto to = m_header.get_optional<std::string>("to.h");
+    if(!to) return;
+    if(*to == "localhost" || *to == GConfig::GConfigS().nodeName()) {
+      return;
+    }
+    if(*to == "*") {
+      m_destType = DestType::broadcast;
+      return;
+    }
+    m_destType = DestType::remote;
+    return;
+  }
+
+  Msg::DestType Msg::destType() const {
+    return m_destType;
+  }
+
+  bool Msg::isBroadcast() const
+  {
+    return m_destType == DestType::broadcast;
+  }
 
   bool Msg::isLocal() const
   {
-    auto to = m_header.get_optional<std::string>("to.h");
-    if(!to) return true;
-    if(*to == "localhost" || *to == GConfig::GConfigS().nodeName())
-    {
-      return true;
-    }
-    return false;
+    return m_destType == DestType::local;
   }
+
+  bool Msg::isRemote() const
+  {
+    return m_destType == DestType::remote;
+  }
+
 
 
   bool MsgQueue::processNewInput(std::string_view input)
@@ -87,8 +117,33 @@ namespace uzel {
     while(!m_mqueue.empty())
     {
       auto msg = m_mqueue.front();
-      if(msg.isLocal()) {
-
+      if(msg.isBroadcast())
+      {
+        std::for_each(remoteConnections.begin(), remoteConnections.end(),
+                      [&msg](std::shared_ptr<Connection> &sc){
+                        sc->putOutQueue(msg);
+                      });
+      } else if(msg.isRemote()) {
+        auto rit = remoteConnections.find(msg.destHost());
+        if(rit != remoteConnections.end())
+        {
+          rit->putOutQueue(std::move(msg));
+        }
+      }
+      if(msg.isLocal() || msg.isBroadcast()) {
+        if(msg.isLocalBroadcast())
+        {
+          std::for_each(localConnections.begin(), localConnections.end(),
+                        [&msg](std::shared_ptr<Connection> &sc){
+                          sc->putOutQueue(msg);
+                        });
+        } else {
+          auto lit = localConnections.find(msg.destApp());
+          if(lit != localConnections.end())
+          {
+            lit->putOutQueue(std::move(msg));
+          }
+        }
       }
       m_mqueue.pop();
     }

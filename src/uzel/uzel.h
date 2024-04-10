@@ -33,15 +33,25 @@ namespace uzel
   class Msg
   {
   public:
+    enum DestType
+    {
+      local, remote, broadcast
+    };
     using ptree = boost::property_tree::ptree;
     explicit Msg(ptree &&header, std::string &&body);
     explicit Msg(ptree &&header, ptree &&body);
     void addPayload();
+    DestType destType() const;
+    bool isBroadcast() const;
+    bool isLocal() const;
+    bool isRemote() const;
 
-    [[nodiscard]] bool isLocal() const;
   private:
+    void checkDestHost();
+
     boost::property_tree::ptree m_header; //!< message header
     std::variant<std::string,boost::property_tree::ptree> m_body; //!< unpared/parsed message body
+    DestType m_destType;
   };
 
   class MsgQueue
