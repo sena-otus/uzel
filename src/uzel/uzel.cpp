@@ -123,6 +123,7 @@ namespace uzel {
     auto host = m_header->get_optional<std::string>("from.h");
     auto appn = m_header->get_optional<std::string>("from.n");
     if(!appn || !host) {
+      std::cerr << "now source appname in first message - refuse connection";
       return false;
     }
     m_remoteHost = *host;
