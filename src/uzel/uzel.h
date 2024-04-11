@@ -63,6 +63,8 @@ namespace uzel
     std::queue<Msg> m_mqueue;
     AccuLine m_acculine;
     std::optional<boost::property_tree::ptree> m_header;
+    std::string m_remoteHost;
+    std::string m_remoteName;
   };
 
 };

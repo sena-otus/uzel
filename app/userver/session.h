@@ -28,4 +28,5 @@ private:
   enum { max_length = 1024*1024 };
   std::array<char, max_length> m_data;
   uzel::MsgQueue m_inMsgQueue;
+  std::string m_remoteName;
 };

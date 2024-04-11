@@ -2,7 +2,9 @@
 
 #include <utility>
 #include <boost/asio.hpp>
+#include <list>
 
+class session;
 
 /** @brief приложение TCP сервер */
 class NetApp
@@ -18,4 +20,5 @@ private:
   void do_accept();
 
   boost::asio::ip::tcp::acceptor m_acceptor;
+  std::list<std::shared_ptr<session>> m_unauthlist;
 };

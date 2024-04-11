@@ -17,7 +17,8 @@ void NetApp::do_accept()
       {
         if (!ec)
         {
-          std::make_shared<session>(std::move(socket))->start();
+          auto unauth = std::make_shared<session>(std::move(socket))->start();
+          unauthlist.emplace_back(unauth);
         }
 
         do_accept();

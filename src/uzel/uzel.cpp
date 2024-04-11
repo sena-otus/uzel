@@ -87,9 +87,9 @@ namespace uzel {
         try {
           m_header = Msg::ptree();
           boost::property_tree::read_json(is, *m_header);
-          auto host = m_header->get<std::string>("to.h", "?");
-          auto appn = m_header->get<std::string>("to.n", "?");
-          std::cout << "got header of the msg for " << appn << "@"  << host << "\n";
+          auto host = m_header->get<std::string>("from.h", "?");
+          auto appn = m_header->get<std::string>("from.n", "?");
+          std::cout << "got header of the msg from " << appn << "@"  << host << "\n";
             // body can be inside header for small messages
           auto bodyit = m_header->find("body");
           if(bodyit != m_header->not_found()) {
@@ -112,11 +112,35 @@ namespace uzel {
     return true;
   }
 
+  bool MsgQueue::auth() const
+  {
+    return !m_remoteName.empty();
+  }
+
+
+  bool MsgQueue::auth(const ptree &header)
+  {
+    auto host = m_header->get_optional<std::string>("from.h");
+    auto appn = m_header->get_optional<std::string>("from.n");
+    if(!appn || !host) {
+      return false;
+    }
+    m_remoteHost = *host;
+    m_remoteName = *appn;
+  }
+
+
   void MsgQueue::processQueue()
   {
     while(!m_mqueue.empty())
     {
       auto msg = m_mqueue.front();
+      if(!auth()) {
+        if(!auth(msg.header())) {
+          disconnect();
+          return;
+        }
+      }
       if(msg.isBroadcast())
       {
         std::for_each(remoteConnections.begin(), remoteConnections.end(),
