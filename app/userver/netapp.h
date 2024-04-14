@@ -3,6 +3,7 @@
 #include <utility>
 #include <boost/asio.hpp>
 #include <list>
+#include <map>
 
 class session;
 
@@ -21,4 +22,6 @@ private:
 
   boost::asio::ip::tcp::acceptor m_acceptor;
   std::list<std::shared_ptr<session>> m_unauthlist;
+  std::map<std::string, std::shared_ptr<session>> m_locals;
+  std::map<std::string, std::shared_ptr<session>> m_remotes;
 };

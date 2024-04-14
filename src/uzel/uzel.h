@@ -3,17 +3,28 @@
 #include "acculine.h"
 #include <boost/asio/ip/address_v4.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <boost/signals2.hpp>
 #include <variant>
 #include <string>
+#include <string_view>
 #include <queue>
 
 class GConfig
 {
 public:
-  static GConfig& GConfigS();
-  std::string nodeName();
+  std::string nodeName() const;
+  bool isLocalNode(const std::string &nname) const;
 private:
 };
+
+
+class GConfigS
+{
+
+public:
+  static GConfig& getGConfig();
+};
+
 
 
 
@@ -35,7 +46,7 @@ namespace uzel
   public:
     enum DestType
     {
-      local, remote, broadcast
+      local, remote, broadcast, localbroadcast
     };
     using ptree = boost::property_tree::ptree;
     explicit Msg(ptree &&header, std::string &&body);
@@ -45,26 +56,37 @@ namespace uzel
     bool isBroadcast() const;
     bool isLocal() const;
     bool isRemote() const;
-
+    bool isLocalBroadcast() const;
+    std::string str() const;
+    const ptree& header() const;
   private:
-    void checkDestHost();
+    void checkDest();
 
-    boost::property_tree::ptree m_header; //!< message header
+    ptree m_header; //!< message header
     std::variant<std::string,boost::property_tree::ptree> m_body; //!< unpared/parsed message body
     DestType m_destType;
   };
 
-  class MsgQueue
+  class InputProcessor
   {
   public:
     bool processNewInput(std::string_view input);
-    void processQueue();
+    void processMsg(Msg && msg);
+    bool isLocal() const;
+    bool auth() const;
+    bool  auth(const Msg::ptree &header);
+
+    boost::signals2::signal<void ()> s_disconnect;
+    boost::signals2::signal<void (Msg &msg)> s_broadcast;
+    boost::signals2::signal<void (Msg &msg)> s_remote;
+    boost::signals2::signal<void (Msg &msg)> s_local;
+    boost::signals2::signal<void (Msg &msg)> s_localbroadcast;
   private:
-    std::queue<Msg> m_mqueue;
     AccuLine m_acculine;
     std::optional<boost::property_tree::ptree> m_header;
     std::string m_remoteHost;
     std::string m_remoteName;
+    bool m_isLocal{true};
   };
 
 };

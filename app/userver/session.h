@@ -20,13 +20,22 @@ public:
   session& operator=(session &&other) = delete;
   session& operator=(const session &other) = delete;
 
+  void disconnect();
+  void localMsg(uzel::Msg && msg);
+  void remoteMsg(uzel::Msg && msg);
+  void broadcastMsg(uzel::Msg && msg);
+  void localbroadcastMsg(uzel::Msg && msg);
+
+
   void start();
+  void putOutQueue(Msg && msg);
 private:
   void do_read();
 
   boost::asio::ip::tcp::socket m_socket;
   enum { max_length = 1024*1024 };
   std::array<char, max_length> m_data;
-  uzel::MsgQueue m_inMsgQueue;
+  uzel::InputProcessor m_processor;
+  std::queue<std::string> m_outQueue;
   std::string m_remoteName;
 };

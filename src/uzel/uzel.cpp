@@ -9,15 +9,20 @@
 
 
 std::string
-GConfig::nodeName()
+GConfig::nodeName() const
 {
   return "believer";
 }
 
-GConfig& GConfig::GConfigS()
+GConfig& GConfigS::getGConfig()
 {
   static GConfig gconfig;
   return gconfig;
+}
+
+bool GConfig::isLocalNode(const std::string &nname) const
+{
+  return (nname == nodeName());
 }
 
 
@@ -29,23 +34,43 @@ namespace uzel {
   }
 
   Msg::Msg(Msg::ptree &&header, std::string &&body)
-    : m_header(header), m_body(body)
+    : m_header(header), m_body(body), m_destType(DestType::local)
   {
-    checkDestHost();
+    checkDest();
   }
 
   Msg::Msg(Msg::ptree &&header, Msg::ptree &&body)
-    : m_header(header), m_body(body)
+    : m_header(header), m_body(body), m_destType(DestType::local)
   {
-    checkDestHost();
+    checkDest();
   }
 
-  void Msg::checkDestHost()
+  std::string Msg::str() const
+  {
+    std::ostringstream oss;
+    boost::property_tree::write_json(oss, m_header, false);
+    if(m_body.index() == 0) {
+      oss << std::get<std::string>(m_body) << "\n";
+    }
+    return oss.str();
+  }
+
+  const Msg::ptree& Msg::header() const
+  {
+    return m_header;
+  }
+
+
+  void Msg::checkDest()
   {
     m_destType = DestType::local;
-    auto to = m_header.get_optional<std::string>("to.h");
+    auto to = m_header.get_optional<std::string>("to.n");
     if(!to) return;
-    if(*to == "localhost" || *to == GConfig::GConfigS().nodeName()) {
+    if(*to == "localhost" || *to == GConfigS::getGConfig().nodeName()) {
+      auto appn = m_header.get_optional<std::string>("to.a");
+      if(!appn || *appn == "*") {
+        m_destType = DestType::localbroadcast;
+      }
       return;
     }
     if(*to == "*") {
@@ -53,7 +78,6 @@ namespace uzel {
       return;
     }
     m_destType = DestType::remote;
-    return;
   }
 
   Msg::DestType Msg::destType() const {
@@ -75,9 +99,12 @@ namespace uzel {
     return m_destType == DestType::remote;
   }
 
+  bool Msg::isLocalBroadcast() const
+  {
+    return m_destType == DestType::localbroadcast;
+  }
 
-
-  bool MsgQueue::processNewInput(std::string_view input)
+  bool InputProcessor::processNewInput(std::string_view input)
   {
     m_acculine.addNewInput(input);
     std::optional<std::string> line;
@@ -93,8 +120,10 @@ namespace uzel {
             // body can be inside header for small messages
           auto bodyit = m_header->find("body");
           if(bodyit != m_header->not_found()) {
-            auto body = std::move(*bodyit);
-            m_mqueue.emplace(std::move(*m_header), std::move(body.second));
+            Msg::ptree body;
+            body.swap(bodyit->second);
+            m_header->erase("body");
+            processMsg(Msg(std::move(*m_header), std::move(body)));
           }
           m_header.reset();
         }
@@ -105,72 +134,72 @@ namespace uzel {
         continue;
       }
         // create msg
-      m_mqueue.emplace(std::move(*m_header), std::move(*line));
+      processMsg(Msg(std::move(*m_header), std::move(*line)));
       m_header.reset();
     }
-    processQueue();
     return true;
   }
 
-  bool MsgQueue::auth() const
+  bool InputProcessor::auth() const
   {
     return !m_remoteName.empty();
   }
 
 
-  bool MsgQueue::auth(const ptree &header)
+  bool InputProcessor::isLocal() const
   {
-    auto host = m_header->get_optional<std::string>("from.h");
-    auto appn = m_header->get_optional<std::string>("from.n");
-    if(!appn || !host) {
-      std::cerr << "now source appname in first message - refuse connection";
-      return false;
-    }
-    m_remoteHost = *host;
-    m_remoteName = *appn;
+    return m_isLocal;
   }
 
 
-  void MsgQueue::processQueue()
+  bool InputProcessor::auth(const Msg::ptree &header)
   {
-    while(!m_mqueue.empty())
+    auto node = header.get_optional<std::string>("from.n");
+    auto appn = header.get_optional<std::string>("from.a");
+    if(!appn || !node) {
+      std::cerr << "now source appname in first message - refuse connection\n";
+      return false;
+    }
+    m_isLocal = GConfigS::getGConfig().isLocalNode(*node);
+
+    if(m_isLocal) {
+      if(*appn == "userver") {
+        std::cerr << "refuse loop connection\n";
+        return false;
+      }
+    } else {
+      if(*appn != "userver") {
+        std::cerr << "refuse remote connection from non-userver\n";
+        return false;
+      }
+    }
+
+
+    m_remoteHost = *node;
+    m_remoteName = *appn;
+    return true;
+  }
+
+
+  void InputProcessor::processMsg(Msg && msg)
+  {
+    if(!auth()) {
+      if(!auth(msg.header())) {
+        s_disconnect();
+        return;
+      }
+    }
+    if(msg.isBroadcast())
     {
-      auto msg = m_mqueue.front();
-      if(!auth()) {
-        if(!auth(msg.header())) {
-          disconnect();
-          return;
-        }
+      s_broadcast(msg);
+    } else if(msg.isRemote()) {
+      s_remote(msg);
+    } else if(msg.isLocal() || msg.isBroadcast()) {
+      if(msg.isLocalBroadcast()) {
+        s_localbroadcast(msg);
+      } else {
+        s_local(msg);
       }
-      if(msg.isBroadcast())
-      {
-        std::for_each(remoteConnections.begin(), remoteConnections.end(),
-                      [&msg](std::shared_ptr<Connection> &sc){
-                        sc->putOutQueue(msg);
-                      });
-      } else if(msg.isRemote()) {
-        auto rit = remoteConnections.find(msg.destHost());
-        if(rit != remoteConnections.end())
-        {
-          rit->putOutQueue(std::move(msg));
-        }
-      }
-      if(msg.isLocal() || msg.isBroadcast()) {
-        if(msg.isLocalBroadcast())
-        {
-          std::for_each(localConnections.begin(), localConnections.end(),
-                        [&msg](std::shared_ptr<Connection> &sc){
-                          sc->putOutQueue(msg);
-                        });
-        } else {
-          auto lit = localConnections.find(msg.destApp());
-          if(lit != localConnections.end())
-          {
-            lit->putOutQueue(std::move(msg));
-          }
-        }
-      }
-      m_mqueue.pop();
     }
   }
 }
