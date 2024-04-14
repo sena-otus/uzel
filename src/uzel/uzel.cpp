@@ -28,21 +28,24 @@ bool GConfig::isLocalNode(const std::string &nname) const
 
 
 namespace uzel {
-  Addr::Addr(std::string appname, std::string hostname)
-    : m_appname(std::move(appname)), m_hostname(std::move(hostname))
+  Addr::Addr(std::string appname, std::string nodename)
+    : m_appname(std::move(appname)), m_nodename(std::move(nodename))
   {
   }
 
+
   Msg::Msg(Msg::ptree &&header, std::string &&body)
-    : m_header(header), m_body(body), m_destType(DestType::local)
+    : m_header(header), m_body(body),  m_destType(DestType::local)
   {
-    checkDest();
+    updateFrom();
+    updateDest();
   }
 
   Msg::Msg(Msg::ptree &&header, Msg::ptree &&body)
-    : m_header(header), m_body(body), m_destType(DestType::local)
+    : m_header(header), m_body(body),  m_destType(DestType::local)
   {
-    checkDest();
+    updateFrom();
+    updateDest();
   }
 
   std::string Msg::str() const
@@ -60,20 +63,35 @@ namespace uzel {
     return m_header;
   }
 
+  const Addr& Msg::dest() const
+  {
+    return m_dest;
+  }
 
-  void Msg::checkDest()
+  const Addr& Msg::from() const
+  {
+    return m_from;
+  }
+
+  void Msg::updateFrom()
+  {
+    m_from = Addr(m_header.get<std::string>("from.a", ""), m_header.get<std::string>("from.n", ""));
+  }
+
+  void Msg::updateDest()
   {
     m_destType = DestType::local;
-    auto to = m_header.get_optional<std::string>("to.n");
-    if(!to) return;
-    if(*to == "localhost" || *to == GConfigS::getGConfig().nodeName()) {
-      auto appn = m_header.get_optional<std::string>("to.a");
-      if(!appn || *appn == "*") {
+    auto dest   = m_header.get<std::string>("to.n", "");
+    auto appn = m_header.get<std::string>("to.a", "");
+    m_dest = Addr(appn, dest);
+    if(dest.empty()) return;
+    if(dest == GConfigS::getGConfig().nodeName()) {
+      if(appn == "*") {
         m_destType = DestType::localbroadcast;
       }
       return;
     }
-    if(*to == "*") {
+    if(dest == "*") {
       m_destType = DestType::broadcast;
       return;
     }
@@ -114,9 +132,9 @@ namespace uzel {
         try {
           m_header = Msg::ptree();
           boost::property_tree::read_json(is, *m_header);
-          auto host = m_header->get<std::string>("from.h", "?");
-          auto appn = m_header->get<std::string>("from.n", "?");
-          std::cout << "got header of the msg from " << appn << "@"  << host << "\n";
+          // auto host = m_header->get<std::string>("from.h", "?");
+          // auto appn = m_header->get<std::string>("from.n", "?");
+          // std::cout << "got header of the msg from " << appn << "@"  << host << "\n";
             // body can be inside header for small messages
           auto bodyit = m_header->find("body");
           if(bodyit != m_header->not_found()) {
@@ -142,7 +160,7 @@ namespace uzel {
 
   bool InputProcessor::auth() const
   {
-    return !m_remoteName.empty();
+    return !m_peer.node().empty();
   }
 
 
@@ -152,31 +170,28 @@ namespace uzel {
   }
 
 
-  bool InputProcessor::auth(const Msg::ptree &header)
+  bool InputProcessor::auth(const uzel::Msg &msg)
   {
-    auto node = header.get_optional<std::string>("from.n");
-    auto appn = header.get_optional<std::string>("from.a");
-    if(!appn || !node) {
-      std::cerr << "now source appname in first message - refuse connection\n";
+    auto app = msg.from().app();
+    auto node = msg.from().node();
+    if(app.empty() || node.empty()) {
+      std::cerr << "no source appname or nodename in first message - refuse connection\n";
       return false;
     }
-    m_isLocal = GConfigS::getGConfig().isLocalNode(*node);
+    m_isLocal = GConfigS::getGConfig().isLocalNode(node);
 
     if(m_isLocal) {
-      if(*appn == "userver") {
+      if(app == "userver") {
         std::cerr << "refuse loop connection\n";
         return false;
       }
     } else {
-      if(*appn != "userver") {
+      if(app != "userver") {
         std::cerr << "refuse remote connection from non-userver\n";
         return false;
       }
     }
-
-
-    m_remoteHost = *node;
-    m_remoteName = *appn;
+    m_peer = msg.from();
     return true;
   }
 
@@ -184,22 +199,12 @@ namespace uzel {
   void InputProcessor::processMsg(Msg && msg)
   {
     if(!auth()) {
-      if(!auth(msg.header())) {
-        s_disconnect();
+      if(!auth(msg)) {
+        s_rejected();
         return;
       }
+      s_auth(msg);
     }
-    if(msg.isBroadcast())
-    {
-      s_broadcast(msg);
-    } else if(msg.isRemote()) {
-      s_remote(msg);
-    } else if(msg.isLocal() || msg.isBroadcast()) {
-      if(msg.isLocalBroadcast()) {
-        s_localbroadcast(msg);
-      } else {
-        s_local(msg);
-      }
-    }
+    s_dispatch(msg);
   }
 }

@@ -35,10 +35,13 @@ namespace uzel
   class Addr
   {
   public:
-    Addr(std::string appname, std::string hostname);
+    Addr() = default;
+    Addr(std::string appname, std::string nodename);
+    std::string app() const {return m_appname;}
+    std::string node() const {return m_nodename;}
   private:
     std::string m_appname;
-    std::string m_hostname;
+    std::string m_nodename;
   };
 
   class Msg
@@ -49,7 +52,10 @@ namespace uzel
       local, remote, broadcast, localbroadcast
     };
     using ptree = boost::property_tree::ptree;
+    using hdr_t = ptree;
+      /*** construct incoming message */
     explicit Msg(ptree &&header, std::string &&body);
+      /*** construct incoming message */
     explicit Msg(ptree &&header, ptree &&body);
     void addPayload();
     DestType destType() const;
@@ -58,13 +64,19 @@ namespace uzel
     bool isRemote() const;
     bool isLocalBroadcast() const;
     std::string str() const;
+    const Addr& from() const;
+    const Addr& dest() const;
     const ptree& header() const;
   private:
-    void checkDest();
+    void updateDest();
+    void updateFrom();
 
     ptree m_header; //!< message header
     std::variant<std::string,boost::property_tree::ptree> m_body; //!< unpared/parsed message body
     DestType m_destType;
+      // cached values:
+    Addr m_dest;
+    Addr m_from;
   };
 
   class InputProcessor
@@ -74,18 +86,15 @@ namespace uzel
     void processMsg(Msg && msg);
     bool isLocal() const;
     bool auth() const;
-    bool  auth(const Msg::ptree &header);
+    bool  auth(const Msg &msg);
 
-    boost::signals2::signal<void ()> s_disconnect;
-    boost::signals2::signal<void (Msg &msg)> s_broadcast;
-    boost::signals2::signal<void (Msg &msg)> s_remote;
-    boost::signals2::signal<void (Msg &msg)> s_local;
-    boost::signals2::signal<void (Msg &msg)> s_localbroadcast;
+    boost::signals2::signal<void ()> s_rejected;
+    boost::signals2::signal<void (const Msg &msg1)> s_auth;
+    boost::signals2::signal<void (Msg &msg)> s_dispatch;
   private:
     AccuLine m_acculine;
     std::optional<boost::property_tree::ptree> m_header;
-    std::string m_remoteHost;
-    std::string m_remoteName;
+    Addr m_peer;
     bool m_isLocal{true};
   };
 

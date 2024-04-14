@@ -8,10 +8,14 @@
 #include <memory>
 #include <array>
 
+
+
 class session
   : public std::enable_shared_from_this<session>
 {
 public:
+  using shr_t = std::shared_ptr<session>;
+
   explicit session(boost::asio::ip::tcp::socket socket);
   ~session();
 
@@ -21,21 +25,25 @@ public:
   session& operator=(const session &other) = delete;
 
   void disconnect();
-  void localMsg(uzel::Msg && msg);
-  void remoteMsg(uzel::Msg && msg);
-  void broadcastMsg(uzel::Msg && msg);
-  void localbroadcastMsg(uzel::Msg && msg);
+
+  boost::signals2::signal<void (session::shr_t ss)> s_auth;
+  boost::signals2::signal<void (uzel::Msg &msg)> s_dispatch;
 
 
+  const uzel::Msg& msg1() const {return m_msg1;}
   void start();
-  void putOutQueue(Msg && msg);
+  void putOutQueue(const uzel::Msg & msg);
 private:
   void do_read();
+  void do_write();
 
   boost::asio::ip::tcp::socket m_socket;
   enum { max_length = 1024*1024 };
   std::array<char, max_length> m_data;
   uzel::InputProcessor m_processor;
   std::queue<std::string> m_outQueue;
-  std::string m_remoteName;
+  uzel::Msg m_msg1; // the very first message (used for auth)
+  boost::signals2::connection m_rejected_c;
+  boost::signals2::connection m_authorized_c;
+  boost::signals2::connection m_dispatch_c;
 };

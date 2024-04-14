@@ -1,23 +1,26 @@
 #include "session.h"
 
+#include <functional>
 #include <iostream>
 
 using boost::asio::ip::tcp;
 
 session::session(tcp::socket socket)
-  : m_socket(std::move(socket)), m_data{0}
+  : m_socket(std::move(socket)), m_data{0}, m_msg1(uzel::Msg::ptree{}, "")
 {
-  m_processor.s_disconnect.connect(std::bind(this, disconnect));
-  m_processor.s_broadcast.connect(std::bind(this, broadcastMsg));
-  m_processor.s_broadcast.connect(std::bind(this, localMsg));
-  m_processor.s_broadcast.connect(std::bind(this, remoteMsg));
-  m_processor.s_broadcast.connect(std::bind(this, localbroadcastMsg));
+  m_rejected_c   = m_processor.s_rejected.connect([&](){ disconnect();});
+  m_authorized_c = m_processor.s_auth    .connect([&](const uzel::Msg &msg){ m_msg1 = msg; s_auth(shared_from_this()); });
+  m_dispatch_c   = m_processor.s_dispatch.connect([&](uzel::Msg &msg){ s_dispatch(msg);});
 }
 
 
 
 session::~session()
 {
+  m_rejected_c.disconnect();
+  m_authorized_c.disconnect();
+  m_dispatch_c.disconnect();
+
 }
 
 void session::start()
@@ -67,7 +70,7 @@ void session::do_write()
 }
 
 
-void session::putOutQueue(const Msg &msg)
+void session::putOutQueue(const uzel::Msg &msg)
 {
   bool wasEmpty = m_outQueue.empty();
   m_outQueue.emplace(msg.str());
@@ -80,38 +83,4 @@ void session::putOutQueue(const Msg &msg)
 void session::disconnect()
 {
   m_socket.close();
-}
-
-void session::localMsg(uzel::Msg && msg)
-{
-  auto lit = localConnections.find(msg.destApp());
-  if(lit != localConnections.end()) {
-    lit->putOutQueue(std::move(msg));
-  }
-}
-void session::localbroadcastMsg(uzel::Msg && msg)
-{
-    std::for_each(localConnections.begin(), localConnections.end(),
-                  [&msg](std::shared_ptr<Connection> &sc){
-                    sc->putOutQueue(msg);
-                  });
-
-  }
-
-
-  void session::broadcastMsg(uzel::Msg && msg)
-  {
-    std::for_each(remoteConnections.begin(), remoteConnections.end(),
-                  [&msg](std::shared_ptr<Connection> &sc){
-                    sc->putOutQueue(msg);
-                    });
-
-}
-void session::remoteMsg(uzel::Msg && msg)
-{
-  auto rit = remoteConnections.find(msg.destHost());
-  if(rit != remoteConnections.end())
-  {
-    rit->putOutQueue(std::move(msg));
-  }
 }
