@@ -15,8 +15,7 @@ void NetApp::do_accept()
   m_acceptor.async_accept(
     [this](boost::system::error_code ec, tcp::socket socket)
       {
-        if (!ec)
-        {
+        if (!ec) {
           auto unauth = std::make_shared<session>(std::move(socket));
           unauth->s_auth.connect([&](session::shr_t ss){ auth(ss); });
           unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
@@ -31,7 +30,7 @@ void NetApp::localMsg(uzel::Msg & msg)
 {
   auto lit = m_locals.find(msg.dest().app());
   if(lit != m_locals.end()) {
-    lit->second->putOutQueue(msg);
+    lit->second->putOutQueue(std::move(msg));
   }
 }
 
@@ -59,7 +58,7 @@ void NetApp::remoteMsg(uzel::Msg & msg)
   auto rit = m_remotes.find(msg.dest().node());
   if(rit != m_remotes.end())
   {
-    rit->second->putOutQueue(msg);
+    rit->second->putOutQueue(std::move(msg));
   }
 }
 

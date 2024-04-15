@@ -49,6 +49,7 @@ void session::do_read()
       });
 }
 
+//NOLINTBEGIN(misc-no-recursion)
 void session::do_write()
 {
   if(m_outQueue.empty()) return;
@@ -68,12 +69,22 @@ void session::do_write()
         }
       });
 }
+//NOLINTEND(misc-no-recursion)
 
 
 void session::putOutQueue(const uzel::Msg &msg)
 {
-  bool wasEmpty = m_outQueue.empty();
+  const bool wasEmpty = m_outQueue.empty();
   m_outQueue.emplace(msg.str());
+  if(wasEmpty) {
+    do_write();
+  }
+}
+
+void session::putOutQueue(uzel::Msg &&msg)
+{
+  const bool wasEmpty = m_outQueue.empty();
+  m_outQueue.emplace(msg.move_tostr());
   if(wasEmpty) {
     do_write();
   }

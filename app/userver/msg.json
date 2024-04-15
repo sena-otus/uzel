@@ -1,0 +1,4 @@
+{ "to" : { "n" : "believer", "a" : "userver" }, "from" : {"n": "believer", "a" : "uclient1" }, "body" : { "f1" : "11", "f2" : "12"} }
+{ "to" : { "n" : "believer", "a" : "userver" }, "from" : {"n": "believer", "a" : "uclient2" }, "body" : { "f1" : "21", "f2" : "22"} }
+{ "to" : { "n" : "believer", "a" : "uclient2" }, "from" : {"n": "believer", "a" : "uclient1" }, "body" : { "f1" : "11", "f2" : "12"} }
+{ "to" : { "n" : "believer", "a" : "uclient1" }, "from" : {"n": "believer", "a" : "uclient2" }, "body" : { "f1" : "21", "f2" : "22"} }

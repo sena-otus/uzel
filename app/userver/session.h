@@ -32,7 +32,8 @@ public:
 
   const uzel::Msg& msg1() const {return m_msg1;}
   void start();
-  void putOutQueue(const uzel::Msg & msg);
+  void putOutQueue(const uzel::Msg& msg);
+  void putOutQueue(uzel::Msg&& msg);
 private:
   void do_read();
   void do_write();

@@ -12,8 +12,8 @@
 class GConfig
 {
 public:
-  std::string nodeName() const;
-  bool isLocalNode(const std::string &nname) const;
+  [[nodiscard]] std::string nodeName() const;
+  [[nodiscard]] bool isLocalNode(const std::string &nname) const;
 private:
 };
 
@@ -37,8 +37,8 @@ namespace uzel
   public:
     Addr() = default;
     Addr(std::string appname, std::string nodename);
-    std::string app() const {return m_appname;}
-    std::string node() const {return m_nodename;}
+    [[nodiscard]] std::string app() const {return m_appname;}
+    [[nodiscard]] std::string node() const {return m_nodename;}
   private:
     std::string m_appname;
     std::string m_nodename;
@@ -58,15 +58,16 @@ namespace uzel
       /*** construct incoming message */
     explicit Msg(ptree &&header, ptree &&body);
     void addPayload();
-    DestType destType() const;
-    bool isBroadcast() const;
-    bool isLocal() const;
-    bool isRemote() const;
-    bool isLocalBroadcast() const;
-    std::string str() const;
-    const Addr& from() const;
-    const Addr& dest() const;
-    const ptree& header() const;
+    [[nodiscard]] DestType destType() const;
+    [[nodiscard]] bool isBroadcast() const;
+    [[nodiscard]] bool isLocal() const;
+    [[nodiscard]] bool isRemote() const;
+    [[nodiscard]] bool isLocalBroadcast() const;
+    [[nodiscard]] std::string str() const;
+    [[nodiscard]] std::string move_tostr();
+    [[nodiscard]] const Addr& from() const;
+    [[nodiscard]] const Addr& dest() const;
+    [[nodiscard]] const ptree& header() const;
   private:
     void updateDest();
     void updateFrom();
@@ -84,8 +85,8 @@ namespace uzel
   public:
     bool processNewInput(std::string_view input);
     void processMsg(Msg && msg);
-    bool isLocal() const;
-    bool auth() const;
+    [[nodiscard]] bool isLocal() const;
+    [[nodiscard]] bool auth() const;
     bool  auth(const Msg &msg);
 
     boost::signals2::signal<void ()> s_rejected;

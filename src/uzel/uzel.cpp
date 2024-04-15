@@ -54,9 +54,26 @@ namespace uzel {
     boost::property_tree::write_json(oss, m_header, false);
     if(m_body.index() == 0) {
       oss << std::get<std::string>(m_body) << "\n";
+    } else {
+      boost::property_tree::write_json(oss, std::get<ptree>(m_body), false);
     }
     return oss.str();
   }
+
+  std::string Msg::move_tostr()
+  {
+    std::ostringstream oss;
+    if(m_body.index() == 0) {
+      boost::property_tree::write_json(oss, m_header, false);
+      oss << std::get<std::string>(m_body) << "\n";
+    } else {
+      auto &ibody = m_header.put_child("body", ptree());
+      ibody.swap(std::get<ptree>(m_body));
+      boost::property_tree::write_json(oss, m_header, false);
+    }
+    return oss.str();
+  }
+
 
   const Msg::ptree& Msg::header() const
   {
