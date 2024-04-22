@@ -32,3 +32,6 @@
 *.app
 
 *~
+compile_commands.json
+/build/
+/.emacs.desktop
