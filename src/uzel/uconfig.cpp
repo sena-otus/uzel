@@ -4,13 +4,32 @@
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/system/error_code.hpp>
-#define BOOST_NO_CXX11_SCOPED_ENUMS
 #include <boost/filesystem.hpp>
-#undef BOOST_NO_CXX11_SCOPED_ENUMS
 #include <regex>
 
 namespace uzel
 {
+
+  std::string executable_name()
+  {
+#if defined(PLATFORM_POSIX) || defined(__linux__) //check defines for your setup
+
+    std::string sp;
+    std::ifstream("/proc/self/comm") >> sp;
+    return sp;
+
+#elif defined(_WIN32)
+
+    char buf[MAX_PATH];
+    GetModuleFileNameA(nullptr, buf, MAX_PATH);
+    return buf;
+
+#else
+
+    static_assert(false, "unrecognized platform");
+
+#endif
+}
 
   UConfig::UConfig()
   {
@@ -27,9 +46,10 @@ namespace uzel
   std::string
   UConfig::appName()
   {
-    boost::system::error_code ec;
-    const boost::dll::fs::path fp = boost::dll::program_location(ec);
-    return fp.filename().string();
+      //   boost::system::error_code ec;
+      //const boost::dll::fs::path fp = boost::dll::program_location(ec);
+      //return fp.filename().string();
+    return executable_name();
   }
 
 
