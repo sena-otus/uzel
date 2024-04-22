@@ -26,6 +26,7 @@ public:
   void dispatch(uzel::Msg &msg);
 private:
   void do_accept();
+  void serviceMsg(uzel::Msg &msg);
   void localMsg(uzel::Msg &msg);
   void remoteMsg(uzel::Msg &msg);
   void broadcastMsg(uzel::Msg &msg);

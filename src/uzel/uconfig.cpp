@@ -1,7 +1,12 @@
 #include "uconfig.h"
 
+#include <boost/dll/runtime_symbol_info.hpp>
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/property_tree/ini_parser.hpp>
+#include <boost/system/error_code.hpp>
+#define BOOST_NO_CXX11_SCOPED_ENUMS
+#include <boost/filesystem.hpp>
+#undef BOOST_NO_CXX11_SCOPED_ENUMS
 #include <regex>
 
 namespace uzel
@@ -18,6 +23,15 @@ namespace uzel
       // get hostname
     return boost::asio::ip::host_name();
   }
+
+  std::string
+  UConfig::appName()
+  {
+    boost::system::error_code ec;
+    const boost::dll::fs::path fp = boost::dll::program_location(ec);
+    return fp.filename().string();
+  }
+
 
   UConfig& UConfigS::getUConfig()
   {

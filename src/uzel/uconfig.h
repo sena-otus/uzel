@@ -15,6 +15,7 @@ namespace uzel
 
     UConfig();
     [[nodiscard]] std::string nodeName() const;
+    [[nodiscard]] static std::string appName();
     [[nodiscard]] bool isLocalNode(const std::string &nname) const;
     std::list<std::string> remotes() const;
   private:

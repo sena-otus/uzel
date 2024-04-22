@@ -33,6 +33,27 @@ namespace uzel {
     updateDest();
   }
 
+  Msg::Msg(const std::string &appname, const std::string &hname, Msg::ptree && body)
+    : m_destType{DestType::service}
+  {
+    auto localhname = uzel::UConfigS::getUConfig().nodeName();
+    m_header.add("from.n", localhname);
+    m_header.add("from.a", uzel::UConfig::appName());
+    auto realhname = hname;
+    if(realhname == "localhost") {
+      realhname = localhname;
+    }
+    if(!appname.empty() && !hname.empty())
+    { // service message to peer
+      m_header.add("to.n", realhname);
+      m_header.add("to.a", appname);
+    }
+    m_body = Msg::ptree{};
+    std::get<Msg::ptree>(m_body).swap(body);
+    updateDest();
+  }
+
+
   std::string Msg::str() const
   {
     std::ostringstream oss;
@@ -58,6 +79,7 @@ namespace uzel {
     }
     return oss.str();
   }
+
 
 
   const Msg::ptree& Msg::header() const
@@ -86,6 +108,10 @@ namespace uzel {
     auto dest   = m_header.get<std::string>("to.n", "");
     auto appn = m_header.get<std::string>("to.a", "");
     m_dest = Addr(appn, dest);
+    if(appn.empty() && dest.empty()){
+      m_destType = DestType::service;
+      return;
+    }
     if(dest.empty()) return;
     if(dest == UConfigS::getUConfig().nodeName()) {
       if(appn == "*") {

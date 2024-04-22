@@ -25,6 +25,10 @@ session::~session()
 
 void session::start()
 {
+  uzel::Msg::ptree body{};
+  body.add("auth.pid", getpid());
+
+  putOutQueue(uzel::Msg("","", std::move(body)));
   do_read();
 }
 

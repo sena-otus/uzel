@@ -88,10 +88,19 @@ void NetServer::remoteMsg(uzel::Msg & msg)
   }
 }
 
+
+void NetServer::serviceMsg(uzel::Msg &msg [[maybe_unused]])
+{
+  return;
+}
+
 void NetServer::dispatch(uzel::Msg &msg)
 {
   switch(msg.destType())
   {
+    case uzel::Msg::DestType::service:
+      serviceMsg(msg);
+      break;
     case uzel::Msg::DestType::local:
       localMsg(msg);
       break;

@@ -32,7 +32,7 @@ namespace uzel
   public:
     enum DestType
     {
-      local, remote, broadcast, localbroadcast
+      local, remote, broadcast, localbroadcast, service
     };
     using ptree = boost::property_tree::ptree;
     using hdr_t = ptree;
@@ -40,6 +40,8 @@ namespace uzel
     explicit Msg(ptree &&header, std::string &&body);
       /*** construct incoming message */
     explicit Msg(ptree &&header, ptree &&body);
+      /** construct outgoing message */
+    Msg(const std::string &appname, const std::string &hname, Msg::ptree && body);
     void addPayload();
     [[nodiscard]] DestType destType() const;
     [[nodiscard]] bool isBroadcast() const;

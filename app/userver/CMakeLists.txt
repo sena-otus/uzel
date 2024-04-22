@@ -4,7 +4,7 @@ add_executable(userver
   netapp.cpp
 )
 
-target_link_libraries(userver PRIVATE uzel)
+target_link_libraries(userver PRIVATE uzel Boost::boost Boost::system)
 
 #set_target_properties(userver PROPERTIES
 #    CXX_STANDARD 20
