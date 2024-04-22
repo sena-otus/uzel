@@ -1,8 +1,9 @@
 add_library(uzel
   uzel.cpp
+  uconfig.cpp
 )
 
-target_link_libraries(uzel PRIVATE Boost::boost)
+target_link_libraries(uzel PUBLIC Boost::boost Boost::thread)
 
 #set_target_properties(uzel PROPERTIES
 #    CXX_STANDARD 20

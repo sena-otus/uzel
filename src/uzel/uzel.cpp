@@ -1,4 +1,6 @@
 #include "uzel.h"
+#include "uconfig.h"
+
 
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree_fwd.hpp>
@@ -7,23 +9,6 @@
 #include <string_view>
 #include <utility>
 
-
-std::string
-GConfig::nodeName() const
-{
-  return "believer";
-}
-
-GConfig& GConfigS::getGConfig()
-{
-  static GConfig gconfig;
-  return gconfig;
-}
-
-bool GConfig::isLocalNode(const std::string &nname) const
-{
-  return (nname == nodeName());
-}
 
 
 
@@ -102,7 +87,7 @@ namespace uzel {
     auto appn = m_header.get<std::string>("to.a", "");
     m_dest = Addr(appn, dest);
     if(dest.empty()) return;
-    if(dest == GConfigS::getGConfig().nodeName()) {
+    if(dest == UConfigS::getUConfig().nodeName()) {
       if(appn == "*") {
         m_destType = DestType::localbroadcast;
       }
@@ -195,7 +180,7 @@ namespace uzel {
       std::cerr << "no source appname or nodename in first message - refuse connection\n";
       return false;
     }
-    m_isLocal = GConfigS::getGConfig().isLocalNode(node);
+    m_isLocal = UConfigS::getUConfig().isLocalNode(node);
 
     if(m_isLocal) {
       if(app == "userver") {

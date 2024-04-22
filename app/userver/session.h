@@ -25,6 +25,8 @@ public:
   session& operator=(const session &other) = delete;
 
   void disconnect();
+  void startConnection(const boost::asio::ip::tcp::resolver::results_type &remote);
+  void connectHandler(const boost::system::error_code &ec);
 
   boost::signals2::signal<void (session::shr_t ss)> s_auth;
   boost::signals2::signal<void (uzel::Msg &msg)> s_dispatch;

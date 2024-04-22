@@ -1,5 +1,6 @@
 #include "session.h"
 
+#include <boost/asio.hpp>
 #include <functional>
 #include <iostream>
 
@@ -20,12 +21,32 @@ session::~session()
   m_rejected_c.disconnect();
   m_authorized_c.disconnect();
   m_dispatch_c.disconnect();
-
 }
 
 void session::start()
 {
   do_read();
+}
+
+void session::startConnection(const boost::asio::ip::tcp::resolver::results_type &remote)
+{
+  m_socket.async_connect(
+    *remote,
+    [&](const boost::system::error_code &ec) {
+      this->connectHandler(ec);
+    }
+                         );
+}
+
+
+
+void session::connectHandler(const boost::system::error_code &ec)
+{
+  if(ec) {
+    std::cout << "get connection error" << std::endl;
+  } else {
+    start();
+  }
 }
 
 

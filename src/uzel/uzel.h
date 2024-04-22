@@ -1,6 +1,7 @@
 #pragma once
 
 #include "acculine.h"
+#include "uconfig.h"
 #include <boost/asio/ip/address_v4.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/signals2.hpp>
@@ -8,24 +9,6 @@
 #include <string>
 #include <string_view>
 #include <queue>
-
-class GConfig
-{
-public:
-  [[nodiscard]] std::string nodeName() const;
-  [[nodiscard]] bool isLocalNode(const std::string &nname) const;
-private:
-};
-
-
-class GConfigS
-{
-
-public:
-  static GConfig& getGConfig();
-};
-
-
 
 
 
