@@ -118,7 +118,8 @@ void NetServer::dispatch(uzel::Msg &msg)
 
 void NetServer::auth(session::shr_t ss)
 {
-  if(ss->msg1().isLocal()) {
+  if(ss->msg1().fromLocal()) {
+    std::cout << "store local session with name " << ss->msg1().from().app() << "\n";
     m_locals.emplace(ss->msg1().from().app(), ss);
   } else {
     auto rname = ss->msg1().from().node();

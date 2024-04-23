@@ -140,6 +140,12 @@ namespace uzel {
     return m_destType == DestType::local;
   }
 
+  bool Msg::fromLocal() const
+  {
+    return UConfigS::getUConfig().isLocalNode(m_from.node());
+  }
+
+
   bool Msg::isRemote() const
   {
     return m_destType == DestType::remote;
@@ -220,6 +226,8 @@ namespace uzel {
       }
     }
     m_peer = msg.from();
+    std::cout << "authenticated "<< (m_isLocal ? "local" : "remote")
+              << " connection from " << m_peer.app() << "@" << m_peer.node() << "\n";
     return true;
   }
 

@@ -46,6 +46,7 @@ namespace uzel
     [[nodiscard]] DestType destType() const;
     [[nodiscard]] bool isBroadcast() const;
     [[nodiscard]] bool isLocal() const;
+    [[nodiscard]] bool fromLocal() const;
     [[nodiscard]] bool isRemote() const;
     [[nodiscard]] bool isLocalBroadcast() const;
     [[nodiscard]] std::string str() const;
