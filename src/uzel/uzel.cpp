@@ -216,7 +216,7 @@ namespace uzel {
 
     if(m_isLocal) {
       if(app == "userver") {
-        std::cerr << "refuse loop connection\n";
+        std::cerr << "refuse loop connection from local userver@" << node<< "\n";
         return false;
       }
     } else {
