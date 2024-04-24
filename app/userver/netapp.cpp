@@ -14,6 +14,7 @@ NetServer::NetServer(boost::asio::io_context& io_context, unsigned short port)
   auto to_connect_to = uzel::UConfigS::getUConfig().remotes();
   for(auto && rhost : to_connect_to)
   {
+    if(uzel::UConfigS::getUConfig().isLocalNode(rhost)) continue;
     namespace ip = boost::asio::ip;
     m_aresolver.async_resolve<tcp>(rhost, "32300",
                               [this](const boost::system::error_code ec, const ip::tcp::resolver::results_type resit){
