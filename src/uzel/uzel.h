@@ -2,7 +2,7 @@
 
 #include "acculine.h"
 #include "uconfig.h"
-#include <boost/asio/ip/address_v4.hpp>
+#include <boost/asio/ip/address_v6.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/signals2.hpp>
 #include <variant>
