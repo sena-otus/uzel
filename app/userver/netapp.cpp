@@ -5,8 +5,11 @@
 using boost::asio::ip::tcp;
 
 NetServer::NetServer(boost::asio::io_context& io_context, unsigned short port)
-  : m_acceptor(io_context, tcp::endpoint(tcp::v4(), port)),  m_aresolver{5, io_context}, m_iocontext(io_context)
+  : m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),  m_aresolver{5, io_context}, m_iocontext(io_context)
 {
+    // throws exception
+    // TODO:  check how to properly set an option
+    // m_acceptor.set_option(boost::asio::ip::v6_only(false));
   do_accept();
   auto to_connect_to = uzel::UConfigS::getUConfig().remotes();
   for(auto && rhost : to_connect_to)
