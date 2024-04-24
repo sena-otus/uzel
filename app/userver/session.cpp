@@ -34,9 +34,10 @@ void session::start()
 
 void session::startConnection(const boost::asio::ip::tcp::resolver::results_type &remote)
 {
+  auto self(shared_from_this());
   m_socket.async_connect(
     *remote,
-    [&](const boost::system::error_code &ec) {
+    [&, self](const boost::system::error_code &ec) {
       this->connectHandler(ec);
     }
                          );
@@ -47,7 +48,7 @@ void session::startConnection(const boost::asio::ip::tcp::resolver::results_type
 void session::connectHandler(const boost::system::error_code &ec)
 {
   if(ec) {
-    std::cout << "get connection error" << std::endl;
+    std::cout << "get connection error: " << ec.message() << std::endl;
   } else {
     start();
   }
