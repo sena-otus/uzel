@@ -1,6 +1,5 @@
 add_executable(userver
   main.cpp
-  session.cpp
   netapp.cpp
 )
 

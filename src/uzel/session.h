@@ -1,7 +1,7 @@
 #pragma once
 
-#include "uzel/uzel.h"
-#include <uzel/acculine.h>
+#include "uzel.h"
+#include "acculine.h"
 
 #include <utility>
 #include <boost/asio.hpp>

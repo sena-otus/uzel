@@ -1,30 +1,23 @@
 #include "netapp.h"
-#include <uzel/session.h>
+#include "session.h"
 #include <uzel/uconfig.h>
 
 using boost::asio::ip::tcp;
 
-NetServer::NetServer(boost::asio::io_context& io_context, unsigned short port)
+NetClient::NetClient(boost::asio::io_context& io_context, unsigned short port)
   : m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),  m_aresolver{5, io_context}, m_iocontext(io_context)
 {
-    // that throws exception!
+    // throws exception
     // TODO:  check how to properly set an option
     // m_acceptor.set_option(boost::asio::ip::v6_only(false));
-
-  do_accept();
-  auto to_connect_to = uzel::UConfigS::getUConfig().remotes();
-  for(auto && rhost : to_connect_to)
-  {
-    if(uzel::UConfigS::getUConfig().isLocalNode(rhost)) continue;
-    namespace ip = boost::asio::ip;
-    m_aresolver.async_resolve<tcp>(rhost, "32300",
-                              [this](const boost::system::error_code ec, const ip::tcp::resolver::results_type resit){
-                                connectResolved(ec,resit);
-                              });
+  m_aresolver.async_resolve<tcp>("localhost", "32300",
+                                 [this](const boost::system::error_code ec, const ip::tcp::resolver::results_type resit){
+                                   connectResolved(ec,resit);
+                                 });
   }
 }
 
-void NetServer::connectResolved(const boost::system::error_code ec, const boost::asio::ip::tcp::resolver::results_type rezit)
+void NetClient::connectResolved(const boost::system::error_code ec, const boost::asio::ip::tcp::resolver::results_type rezit)
 {
   if(ec) {
     std::cout  << "error resolving: "  <<  ec.message() << "\n";
@@ -38,26 +31,7 @@ void NetServer::connectResolved(const boost::system::error_code ec, const boost:
   }
 }
 
-
-void NetServer::do_accept()
-{
-  m_acceptor.async_accept(
-    [this](boost::system::error_code ec, tcp::socket socket)
-      {
-        if (!ec) {
-          auto unauth = std::make_shared<session>(std::move(socket));
-          unauth->s_auth.connect([&](session::shr_t ss){ auth(ss); });
-          unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
-          unauth->start();
-        }
-
-        do_accept();
-      });
-}
-
-
-
-void NetServer::localMsg(uzel::Msg & msg)
+void NetClient::localMsg(uzel::Msg & msg)
 {
   auto lit = m_locals.find(msg.dest().app());
   if(lit != m_locals.end()) {
@@ -65,7 +39,7 @@ void NetServer::localMsg(uzel::Msg & msg)
   }
 }
 
-void NetServer::localbroadcastMsg(uzel::Msg & msg)
+void NetClient::localbroadcastMsg(uzel::Msg & msg)
 {
   std::for_each(m_locals.begin(), m_locals.end(),
                 [&msg](auto &sp){
@@ -75,7 +49,7 @@ void NetServer::localbroadcastMsg(uzel::Msg & msg)
 }
 
 
-void NetServer::broadcastMsg(uzel::Msg & msg)
+void NetClient::broadcastMsg(uzel::Msg & msg)
 {
   std::for_each(m_remotes.begin(), m_remotes.end(),
                 [&msg](auto &sp){
@@ -84,7 +58,7 @@ void NetServer::broadcastMsg(uzel::Msg & msg)
 }
 
 
-void NetServer::remoteMsg(uzel::Msg & msg)
+void NetClient::remoteMsg(uzel::Msg & msg)
 {
   auto rit = m_remotes.find(msg.dest().node());
   if(rit != m_remotes.end())
@@ -94,12 +68,12 @@ void NetServer::remoteMsg(uzel::Msg & msg)
 }
 
 
-void NetServer::serviceMsg(uzel::Msg &msg [[maybe_unused]])
+void NetClient::serviceMsg(uzel::Msg &msg [[maybe_unused]])
 {
   return;
 }
 
-void NetServer::dispatch(uzel::Msg &msg)
+void NetClient::dispatch(uzel::Msg &msg)
 {
   switch(msg.destType())
   {
@@ -121,7 +95,7 @@ void NetServer::dispatch(uzel::Msg &msg)
   }
 }
 
-void NetServer::auth(session::shr_t ss)
+void NetClient::auth(session::shr_t ss)
 {
   if(ss->msg1().fromLocal()) {
     std::cout << "store local session with name " << ss->msg1().from().app() << "\n";

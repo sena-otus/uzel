@@ -1,6 +1,7 @@
 add_library(uzel
   uzel.cpp
   uconfig.cpp
+  session.cpp
 )
 
 target_link_libraries(uzel PUBLIC Boost::boost Boost::thread Boost::system)

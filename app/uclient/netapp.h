@@ -2,7 +2,7 @@
 
 #include <uzel/uzel.h>
 #include <uzel/aresolver.h>
-#include <uzel/session.h>
+#include "session.h"
 #include <utility>
 #include <boost/asio.hpp>
 #include <list>
@@ -12,14 +12,14 @@
 class session;
 
 /** @brief приложение TCP сервер */
-class NetServer
+class NetClient
 {
 public:
     /**
      * @brief конструктор
      * @param io_context контекст ввода-вывода бустасио
-     * @param port номер TCP порта на котором сервер будет принимать соединения */
-  NetServer(boost::asio::io_context& io_context, unsigned short port);
+     * @param port номер TCP порта к которому будем коннектиться */
+  NetClient(boost::asio::io_context& io_context, unsigned short port);
 
 
   void auth(session::shr_t ss);
