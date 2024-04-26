@@ -71,7 +71,6 @@ namespace uzel
   public:
     bool processNewInput(std::string_view input);
     void processMsg(Msg && msg);
-    [[nodiscard]] bool isLocal() const;
     [[nodiscard]] bool auth() const;
     bool  auth(const Msg &msg);
 
@@ -82,7 +81,6 @@ namespace uzel
     AccuLine m_acculine;
     std::optional<boost::property_tree::ptree> m_header;
     Addr m_peer;
-    bool m_isLocal{true};
   };
 
 };

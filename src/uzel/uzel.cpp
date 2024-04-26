@@ -198,11 +198,6 @@ namespace uzel {
   }
 
 
-  bool InputProcessor::isLocal() const
-  {
-    return m_isLocal;
-  }
-
 
   bool InputProcessor::auth(const uzel::Msg &msg)
   {
@@ -212,21 +207,33 @@ namespace uzel {
       std::cerr << "no source appname or nodename in first message - refuse connection\n";
       return false;
     }
-    m_isLocal = UConfigS::getUConfig().isLocalNode(node);
+    bool isLocal = UConfigS::getUConfig().isLocalNode(node);
 
-    if(m_isLocal) {
-      if(app == "userver") {
-        std::cerr << "refuse loop connection from local userver@" << node<< "\n";
+    if(UConfigS::getUConfig().appName() == "userver")
+    {
+      if(isLocal) {
+        if(app == "userver") {
+          std::cerr << "refuse loop connection userver@" << node << "<->userver@" << node<< "\n";
+          return false;
+        }
+      } else { // remote
+        if(app != "userver") {
+          std::cerr << "refuse remote connection to userver from non-userver\n";
+          return false;
+        }
+      }
+    } else { //  normal app
+      if(!isLocal) {
+        std::cerr << "refuse remote connecting to " << app << "@" << node << "\n";
         return false;
       }
-    } else {
       if(app != "userver") {
-        std::cerr << "refuse remote connection from non-userver\n";
+        std::cerr << "refuse connecting to " << app << "@" << node << "\n";
         return false;
       }
     }
     m_peer = msg.from();
-    std::cout << "authenticated "<< (m_isLocal ? "local" : "remote")
+    std::cout << "authenticated "<< (isLocal ? "local" : "remote")
               << " connection from " << m_peer.app() << "@" << m_peer.node() << "\n";
     return true;
   }
