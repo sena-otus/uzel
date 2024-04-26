@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
     boost::asio::io_context io_context;
 
       //NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    const NetServer server(io_context, 32300);
+    const NetClient clientapp(io_context, 32300);
 
     io_context.run();
   }

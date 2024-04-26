@@ -1,4 +1,4 @@
-#include "netapp.h"
+#include "netserver.h"
 #include <uzel/session.h>
 #include <uzel/uconfig.h>
 
