@@ -1,5 +1,7 @@
 add_library(uzel
-  uzel.cpp
+  msg.cpp
+  addr.cpp
+  inputprocessor.cpp
   uconfig.cpp
   session.cpp
 )

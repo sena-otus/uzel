@@ -1,6 +1,5 @@
 #pragma once
 
-#include <uzel/uzel.h>
 #include <uzel/aresolver.h>
 #include <uzel/session.h>
 #include <utility>

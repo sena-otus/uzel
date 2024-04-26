@@ -1,12 +1,14 @@
 #pragma once
 
+#include <utility>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/post.hpp>
-#include <iostream>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/optional.hpp>
 #include <boost/thread.hpp>
+#include <iostream>
+
 
 /// @brief Type used to emulate asynchronous host resolution with a
 ///        dedicated thread pool.

@@ -1,12 +1,14 @@
 #pragma once
 
-#include "uzel.h"
 #include "acculine.h"
+#include "inputprocessor.h"
+#include "msg.h"
 
 #include <utility>
 #include <boost/asio.hpp>
 #include <memory>
 #include <array>
+#include <queue>
 
 
 
