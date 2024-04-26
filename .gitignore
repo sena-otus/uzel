@@ -35,3 +35,11 @@
 compile_commands.json
 /build/
 /.emacs.desktop
+CMakeFiles/
+.cache/
+Makefile
+/CMakeCache.txt
+/CPackConfig.cmake
+/CPackSourceConfig.cmake
+CTestTestfile.cmake
+cmake_install.cmake
