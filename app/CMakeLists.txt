@@ -1,4 +1,2 @@
- add_subdirectory(
-   uclient
-   userver
- )
+add_subdirectory(uclient)
+add_subdirectory(userver)
