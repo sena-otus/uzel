@@ -2,7 +2,7 @@
 
 #include <uzel/uzel.h>
 #include <uzel/aresolver.h>
-#include "session.h"
+#include <uzel/session.h>
 #include <utility>
 #include <boost/asio.hpp>
 #include <list>
@@ -33,11 +33,7 @@ private:
   void localbroadcastMsg(uzel::Msg &msg);
   void connectResolved( boost::system::error_code ec,  boost::asio::ip::tcp::resolver::results_type rezit);
 
-  boost::asio::ip::tcp::acceptor m_acceptor;
   std::map<std::string, session::shr_t> m_locals;
-  std::map<std::string, session::shr_t> m_remotes;
-  std::map<std::string, std::list<session::shr_t>> m_remotes2; // secondary connections
-
   aresolver m_aresolver;
   boost::asio::io_context& m_iocontext;
 };
