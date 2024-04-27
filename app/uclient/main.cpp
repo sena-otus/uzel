@@ -1,6 +1,7 @@
 #include "netapp.h"
 
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 
 
@@ -14,8 +15,8 @@ int main(int argc, char* argv[])
     boost::asio::io_context io_context;
 
       //NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    const NetClient clientapp(io_context, 32300);
-
+    auto clientapp = std::make_shared<NetClient>(io_context, 32300);
+    clientapp->start();
     io_context.run();
   }
   catch (const std::exception& ex)

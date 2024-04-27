@@ -16,7 +16,7 @@ class aresolver
 {
 public:
   aresolver(const std::size_t pool_size, boost::asio::io_context &mainiocontext)
-    : m_work(boost::ref(m_iocontext)), m_mainiocontext(mainiocontext)
+    : m_mainiocontext(mainiocontext), m_work(boost::ref(m_iocontext))
   {
     // Create pool.
     for (std::size_t i = 0; i < pool_size; ++i)

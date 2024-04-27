@@ -16,15 +16,14 @@ NetServer::NetServer(boost::asio::io_context& io_context, unsigned short port)
   for(auto && rhost : to_connect_to)
   {
     if(uzel::UConfigS::getUConfig().isLocalNode(rhost)) continue;
-    namespace ip = boost::asio::ip;
     m_aresolver.async_resolve<tcp>(rhost, "32300",
-                              [this](const boost::system::error_code ec, const ip::tcp::resolver::results_type resit){
+                              [this](const boost::system::error_code ec, const tcp::resolver::results_type resit){
                                 connectResolved(ec,resit);
                               });
   }
 }
 
-void NetServer::connectResolved(const boost::system::error_code ec, const boost::asio::ip::tcp::resolver::results_type rezit)
+void NetServer::connectResolved(const boost::system::error_code ec, const tcp::resolver::results_type rezit)
 {
   if(ec) {
     std::cout  << "error resolving: "  <<  ec.message() << "\n";

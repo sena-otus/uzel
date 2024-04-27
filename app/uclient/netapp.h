@@ -11,7 +11,7 @@
 class session;
 
 /** @brief приложение TCP сервер */
-class NetClient
+class NetClient: public std::enable_shared_from_this<NetClient>
 {
 public:
     /**
@@ -23,6 +23,7 @@ public:
 
   void auth(session::shr_t ss);
   void dispatch(uzel::Msg &msg);
+  void start();
 private:
   void do_accept();
   void serviceMsg(uzel::Msg &msg);
@@ -34,5 +35,5 @@ private:
 
   std::map<std::string, session::shr_t> m_locals;
   aresolver m_aresolver;
-  boost::asio::io_context& m_iocontext;
+  boost::optional<boost::asio::io_context::work> m_work;
 };

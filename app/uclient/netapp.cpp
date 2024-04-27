@@ -6,16 +6,20 @@
 using boost::asio::ip::tcp;
 
 NetClient::NetClient(boost::asio::io_context& io_context, unsigned short port)
-  : m_aresolver{5, io_context}, m_iocontext(io_context)
+  : m_aresolver{5, io_context}, m_work{boost::ref(io_context)}//, m_iocontext(io_context)
 {
-    // throws exception
-    // TODO:  check how to properly set an option
-    // m_acceptor.set_option(boost::asio::ip::v6_only(false));
+}
+
+void NetClient::start()
+{
+  auto self(shared_from_this());
+  std::cout << "try to resolve localhost.." << std::endl;
   m_aresolver.async_resolve<tcp>("localhost", "32300",
-                                 [this](const boost::system::error_code ec, const tcp::resolver::results_type resit){
-                                   connectResolved(ec,resit);
+                                 [this, self](const boost::system::error_code ec, const tcp::resolver::results_type resit){
+                                   self->connectResolved(ec,resit);
                                  });
 }
+
 
 void NetClient::connectResolved(const boost::system::error_code ec, const tcp::resolver::results_type rezit)
 {
@@ -23,7 +27,7 @@ void NetClient::connectResolved(const boost::system::error_code ec, const tcp::r
     std::cout  << "error resolving: "  <<  ec.message() << "\n";
   } else {
     std::cout << "connecting to  "  << rezit->host_name() << "->" << rezit->endpoint() << "...\n";
-    tcp::socket sock{m_iocontext};
+    tcp::socket sock{m_work->get_io_context()};
     auto unauth = std::make_shared<session>(std::move(sock));
     unauth->s_auth.connect([&](session::shr_t ss){ auth(ss); });
     unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
