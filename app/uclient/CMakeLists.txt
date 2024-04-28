@@ -1,6 +1,6 @@
 add_executable(uclient
   main.cpp
-  netapp.cpp
+  netclient.cpp
 )
 
 target_link_libraries(uclient PRIVATE uzel Boost::boost Boost::system)
