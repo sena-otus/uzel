@@ -8,15 +8,15 @@ using boost::asio::ip::tcp;
 NetClient::NetClient(boost::asio::io_context& io_context, unsigned short port)
   : m_aresolver{5, io_context}, m_work{boost::ref(io_context)}//, m_iocontext(io_context)
 {
+  start();
 }
 
 void NetClient::start()
 {
-  auto self(shared_from_this());
-  std::cout << "try to resolve localhost.." << std::endl;
+  std::cout << "resolve localhost...\n";
   m_aresolver.async_resolve<tcp>("localhost", "32300",
-                                 [this, self](const boost::system::error_code ec, const tcp::resolver::results_type resit){
-                                   self->connectResolved(ec,resit);
+                                 [this](const boost::system::error_code ec, const tcp::resolver::results_type resit){
+                                   connectResolved(ec,resit);
                                  });
 }
 

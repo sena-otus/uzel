@@ -15,8 +15,7 @@ int main(int argc, char* argv[])
     boost::asio::io_context io_context;
 
       //NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    auto clientapp = std::make_shared<NetClient>(io_context, 32300);
-    clientapp->start();
+    NetClient clientapp(io_context, 32300);
     io_context.run();
   }
   catch (const std::exception& ex)

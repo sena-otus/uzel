@@ -11,7 +11,7 @@
 class session;
 
 /** @brief приложение TCP сервер */
-class NetClient: public std::enable_shared_from_this<NetClient>
+class NetClient
 {
 public:
     /**
