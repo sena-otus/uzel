@@ -17,8 +17,9 @@ class session
 {
 public:
   using shr_t = std::shared_ptr<session>;
+  using asiotcp = boost::asio::ip::tcp;
 
-  explicit session(boost::asio::ip::tcp::socket socket);
+  explicit session(asiotcp::socket socket);
   ~session();
 
   session(const session &other) = delete;
@@ -27,8 +28,8 @@ public:
   session& operator=(const session &other) = delete;
 
   void disconnect();
-  void startConnection(const boost::asio::ip::tcp::resolver::results_type &remote);
-  void connectHandler(const boost::system::error_code &ec);
+  void startConnection(const asiotcp::resolver::results_type &remote);
+  void connectHandler(const boost::system::error_code &ec, const asiotcp::resolver::results_type &remote);
 
   boost::signals2::signal<void (session::shr_t ss)> s_auth;
   boost::signals2::signal<void (uzel::Msg &msg)> s_dispatch;
