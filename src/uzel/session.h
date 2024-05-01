@@ -33,6 +33,7 @@ public:
 
   boost::signals2::signal<void (session::shr_t ss)> s_auth;
   boost::signals2::signal<void (uzel::Msg &msg)> s_dispatch;
+  boost::signals2::signal<void (const std::string &hostname)> s_connect_error;
 
 
   const uzel::Msg& msg1() const {return m_msg1;}

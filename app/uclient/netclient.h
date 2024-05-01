@@ -31,9 +31,12 @@ private:
   void remoteMsg(uzel::Msg &msg);
   void broadcastMsg(uzel::Msg &msg);
   void localbroadcastMsg(uzel::Msg &msg);
+  void reconnectAfterDelay();
   void connectResolved( boost::system::error_code ec,  boost::asio::ip::tcp::resolver::results_type rezit);
 
   std::map<std::string, session::shr_t> m_locals;
   aresolver m_aresolver;
   boost::optional<boost::asio::io_context::work> m_work;
+  boost::asio::steady_timer m_reconnect_timer;
+  int m_port;
 };

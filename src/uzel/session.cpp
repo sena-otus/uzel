@@ -49,6 +49,7 @@ void session::connectHandler(const boost::system::error_code &ec, const tcp::res
 {
   if(ec) {
     std::cerr << "connection error: " << ec.message() << " when connecting to " << remote->host_name() << "->" << remote->endpoint()<< std::endl;
+    s_connect_error(remote->host_name());
   } else {
     start();
   }
