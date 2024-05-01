@@ -29,6 +29,8 @@ void NetClient::start()
 
 void NetClient::reconnectAfterDelay()
 {
+
+  m_reconnect_timer.expires_after(io::chrono::seconds(delay_reconnect_s));
   m_reconnect_timer.async_wait([this](const boost::system::error_code&  /*ec*/){start();});
 }
 
