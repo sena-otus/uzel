@@ -3,8 +3,14 @@
 #include <uzel/uconfig.h>
 
 using boost::asio::ip::tcp;
+namespace io = boost::asio;
+namespace sys = boost::system;
 
-NetServer::NetServer(boost::asio::io_context& io_context, unsigned short port)
+const int delay_reconnect_s = 10;
+const int resolver_threads = 1;
+
+
+NetServer::NetServer(io::io_context& io_context, unsigned short port)
   : m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),  m_aresolver{5, io_context}, m_iocontext(io_context)
 {
     // that throws exception!
@@ -16,21 +22,36 @@ NetServer::NetServer(boost::asio::io_context& io_context, unsigned short port)
   for(auto && rhost : to_connect_to)
   {
     if(uzel::UConfigS::getUConfig().isLocalNode(rhost)) continue;
-    m_aresolver.async_resolve<tcp>(rhost, "32300",
-                              [this](const boost::system::error_code ec, const tcp::resolver::results_type resit){
-                                connectResolved(ec,resit);
-                              });
+    startResolving(rhost);
   }
 }
 
-void NetServer::connectResolved(const boost::system::error_code ec, const tcp::resolver::results_type rezit)
+
+void NetServer::reconnectAfterDelay(const std::string &hname)
+{
+  auto timer = std::make_shared<io::steady_timer>(m_iocontext, io::chrono::seconds(delay_reconnect_s));
+  timer->async_wait([&,timer, hname](const sys::error_code&  /*ec*/){ startResolving(hname);});
+}
+
+
+void NetServer::startResolving(const std::string &hname)
+{
+  m_aresolver.async_resolve<tcp>(hname, "32300",
+                                 [this](const sys::error_code ec, const tcp::resolver::results_type resit){
+                                   connectResolved(ec,resit);
+                                 });
+}
+
+
+void NetServer::connectResolved(const sys::error_code ec, const tcp::resolver::results_type rezit)
 {
   if(ec) {
     std::cout  << "error resolving: "  <<  ec.message() << "\n";
   } else {
     std::cout << "connecting to  "  << rezit->host_name() << "->" << rezit->endpoint() << "...\n";
-    boost::asio::ip::tcp::socket sock{m_iocontext};
+    tcp::socket sock{m_iocontext};
     auto unauth = std::make_shared<session>(std::move(sock));
+    unauth->s_connect_error.connect([&](const std::string &hname){ reconnectAfterDelay(hname);});
     unauth->s_auth.connect([&](session::shr_t ss){ auth(ss); });
     unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
     unauth->startConnection(rezit);
@@ -41,7 +62,7 @@ void NetServer::connectResolved(const boost::system::error_code ec, const tcp::r
 void NetServer::do_accept()
 {
   m_acceptor.async_accept(
-    [this](boost::system::error_code ec, tcp::socket socket)
+    [this](sys::error_code ec, tcp::socket socket)
       {
         if (!ec) {
           auto unauth = std::make_shared<session>(std::move(socket));

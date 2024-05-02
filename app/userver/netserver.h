@@ -31,6 +31,8 @@ private:
   void broadcastMsg(uzel::Msg &msg);
   void localbroadcastMsg(uzel::Msg &msg);
   void connectResolved( boost::system::error_code ec,  boost::asio::ip::tcp::resolver::results_type rezit);
+  void reconnectAfterDelay(const std::string &hname);
+  void startResolving(const std::string &hname);
 
   boost::asio::ip::tcp::acceptor m_acceptor;
   std::map<std::string, session::shr_t> m_locals;
