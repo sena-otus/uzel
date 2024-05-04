@@ -30,6 +30,12 @@ namespace uzel
     explicit Msg(ptree &&header, ptree &&body);
       /** construct outgoing message */
     Msg(const std::string &appname, const std::string &hname, Msg::ptree && body);
+      /** ctor forwarding message
+       * used to forward incoming message
+       * @param to where to forward
+       * @param other original message
+       **/
+    Msg(const Addr &dest, Msg &&other);
     void addPayload();
     [[nodiscard]] DestType destType() const;
     [[nodiscard]] bool isBroadcast() const;
@@ -39,12 +45,14 @@ namespace uzel
     [[nodiscard]] bool isLocalBroadcast() const;
     [[nodiscard]] std::string str() const;
     [[nodiscard]] std::string move_tostr();
-    [[nodiscard]] const Addr& from() const;
-    [[nodiscard]] const Addr& dest() const;
+    [[nodiscard]] Addr from() const;
+    [[nodiscard]] Addr dest() const;
     [[nodiscard]] const ptree& header() const;
+      // const ptree& body() const;
   private:
     void updateDest();
     void updateFrom();
+    void setFromLocal();
 
     ptree m_header; //!< message header
     std::variant<std::string,boost::property_tree::ptree> m_body; //!< unpared/parsed message body

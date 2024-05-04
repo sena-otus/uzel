@@ -79,8 +79,10 @@ void session::do_read()
 //NOLINTBEGIN(misc-no-recursion)
 void session::do_write()
 {
+  std::cout << "do_write is called" << std::endl;
   if(m_outQueue.empty()) return;
   auto self(shared_from_this());
+  std::cout << "writing" << std::endl;
   boost::asio::async_write(
     m_socket, boost::asio::buffer(m_outQueue.front()),
     [this, self](boost::system::error_code ec, std::size_t /*length*/)
@@ -88,6 +90,7 @@ void session::do_write()
         if(ec) {
           std::cerr << "got error while sending reply: " << ec.message() << std::endl;
         } else {
+          std::cout << "writing succeed " << m_outQueue.front() << std::endl;
           m_outQueue.pop();
           if(m_outQueue.empty()) {
             return;
@@ -101,6 +104,7 @@ void session::do_write()
 
 void session::putOutQueue(const uzel::Msg &msg)
 {
+  std::cout << "putOutQ&" << std::endl;
   const bool wasEmpty = m_outQueue.empty();
   m_outQueue.emplace(msg.str());
   if(wasEmpty) {
@@ -110,6 +114,7 @@ void session::putOutQueue(const uzel::Msg &msg)
 
 void session::putOutQueue(uzel::Msg &&msg)
 {
+  std::cout << "putOutQ&&" << std::endl;
   const bool wasEmpty = m_outQueue.empty();
   m_outQueue.emplace(msg.move_tostr());
   if(wasEmpty) {

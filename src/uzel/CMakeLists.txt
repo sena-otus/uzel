@@ -4,6 +4,7 @@ add_library(uzel
   inputprocessor.cpp
   uconfig.cpp
   session.cpp
+  netclient.cpp
 )
 
 target_link_libraries(uzel PUBLIC Boost::boost Boost::thread Boost::system)

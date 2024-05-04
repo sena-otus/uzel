@@ -1,4 +1,5 @@
 #include "msg.h"
+#include "addr.h"
 #include "uconfig.h"
 
 #include <boost/property_tree/json_parser.hpp>
@@ -29,8 +30,7 @@ namespace uzel {
     : m_destType{DestType::service}
   {
     auto localhname = uzel::UConfigS::getUConfig().nodeName();
-    m_header.add("from.n", localhname);
-    m_header.add("from.a", uzel::UConfig::appName());
+    setFromLocal();
     auto realhname = hname;
     if(realhname == "localhost") {
       realhname = localhname;
@@ -43,6 +43,22 @@ namespace uzel {
     m_body = Msg::ptree{};
     std::get<Msg::ptree>(m_body).swap(body);
     updateDest();
+  }
+
+  Msg::Msg(const Addr &dest, Msg &&other)
+    : Msg(other)
+  {
+    m_dest = dest;
+    setFromLocal();
+  }
+
+  void Msg::setFromLocal()
+  {
+    auto nodename = uzel::UConfigS::getUConfig().nodeName();
+    auto appname = uzel::UConfig::appName();
+    m_header.put("from.n", nodename);
+    m_header.put("from.a", appname );
+    m_from = Addr(appname, nodename);
   }
 
 
@@ -79,12 +95,12 @@ namespace uzel {
     return m_header;
   }
 
-  const Addr& Msg::dest() const
+  Addr Msg::dest() const
   {
     return m_dest;
   }
 
-  const Addr& Msg::from() const
+  Addr Msg::from() const
   {
     return m_from;
   }

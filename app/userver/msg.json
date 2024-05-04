@@ -4,3 +4,4 @@
 {"to"  :{"n":"liver","a":"uclient2"},"from":{"n": "liver", "a" : "uclient1" }, "body" : { "f1" : "11", "f2" : "12"} }
 {"to"  :{"n":"pingutv","a":"uclient2"},"from":{"n": "liver", "a" : "uclient1" }, "body" : { "f1" : "11", "f2" : "12"} }
 {"to"  :{"n":"liver","a":"uclient1"},"from":{"n": "pingutv", "a" : "uclient2" }, "body" : { "f1" : "21", "f2" : "22"} }
+{"to"  :{"n":"liver","a":"uecho"},"from":{"n": "liver", "a" : "uclient2" }, "body" : { "f1" : "21", "f2" : "22"} }

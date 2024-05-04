@@ -1,7 +1,8 @@
 #include "netclient.h"
+#include "session.h"
+#include "uconfig.h"
+
 #include <stdexcept>
-#include <uzel/session.h>
-#include <uzel/uconfig.h>
 
 using boost::asio::ip::tcp;
 namespace io = boost::asio;
@@ -11,7 +12,7 @@ const int resolver_threads = 1;
 
 NetClient::NetClient(io::io_context& io_context, unsigned short port)
   : m_aresolver{resolver_threads, io_context}, m_work{boost::ref(io_context)},
-    m_reconnect_timer(io_context, io::chrono::seconds(delay_reconnect_s)),
+    m_reconnectTimer(io_context, io::chrono::seconds(delay_reconnect_s)),
     m_port(port)
 {
   start();
@@ -29,8 +30,8 @@ void NetClient::start()
 
 void NetClient::reconnectAfterDelay()
 {
-  m_reconnect_timer.expires_after(io::chrono::seconds(delay_reconnect_s));
-  m_reconnect_timer.async_wait([this](const boost::system::error_code&  /*ec*/){start();});
+  m_reconnectTimer.expires_after(io::chrono::seconds(delay_reconnect_s));
+  m_reconnectTimer.async_wait([this](const boost::system::error_code&  /*ec*/){start();});
 }
 
 void NetClient::connectResolved(const boost::system::error_code ec, const tcp::resolver::results_type rezit)
@@ -53,7 +54,6 @@ void NetClient::connectResolved(const boost::system::error_code ec, const tcp::r
 
 void NetClient::dispatch(uzel::Msg &msg)
 {
-  std::cout << "Got message: " << msg.str();
 }
 
 void NetClient::auth(session::shr_t ss)
@@ -61,10 +61,17 @@ void NetClient::auth(session::shr_t ss)
   if(ss->msg1().fromLocal()) {
     std::cout << "store local session with name " << ss->msg1().from().app() << "\n";
     m_locals.emplace(ss->msg1().from().app(), ss);
+    s_authSuccess();
   } else {
-    std::cerr << "connected to something wrong, failing..." << std::endl;
+    std::cerr << "connected to something wrong, close connnection and reconnect after delay..." << std::endl;
       // throw std::runtime_error("should not get remote connection here");
     ss->disconnect();
     reconnectAfterDelay();
   }
+}
+
+
+void NetClient::send(uzel::Msg &&msg)
+{
+  m_locals["userver"]->putOutQueue(msg);
 }
