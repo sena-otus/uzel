@@ -1,8 +1,6 @@
 #include <uzel/netclient.h>
 
 #include <iostream>
-#include <memory>
-#include <stdexcept>
 
 /** simple echo app that will echo all messages back */
 

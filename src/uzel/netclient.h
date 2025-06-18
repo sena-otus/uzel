@@ -2,11 +2,8 @@
 
 #include "aresolver.h"
 #include "session.h"
-#include <utility>
 #include <boost/asio.hpp>
-#include <list>
 #include <map>
-#include <memory>
 
 class session;
 
@@ -31,7 +28,7 @@ private:
   void do_accept();
   void serviceMsg(uzel::Msg &msg);
   void reconnectAfterDelay();
-  void connectResolved( boost::system::error_code ec,  boost::asio::ip::tcp::resolver::results_type rezit);
+  void connectResolved( boost::system::error_code ec,  const boost::asio::ip::tcp::resolver::results_type &rezit);
 
   std::map<std::string, session::shr_t> m_locals;
   aresolver m_aresolver;

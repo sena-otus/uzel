@@ -18,7 +18,7 @@ find_package(Boost REQUIRED COMPONENTS thread system filesystem)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(WITH_CLANG_TIDY)
-  find_program(CLANGTIDY NAMES clang-tidy-15 clang-tidy-14 clang-tidy REQUIRED)
+  find_program(CLANGTIDY NAMES clang-tidy-19 lang-tidy-15 clang-tidy-14 clang-tidy REQUIRED)
   set(CMAKE_CXX_CLANG_TIDY "${CLANGTIDY}")
   message(NOTICE "found and enabled CLANGTIDY=${CLANGTIDY}")
 endif()
