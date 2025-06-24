@@ -13,7 +13,7 @@
 
 namespace uzel {
   Msg::Msg(Msg::ptree &&header, std::string &&body)
-    : m_header(header), m_body(body),  m_destType(DestType::local)
+    : m_header(header), m_body(std::move(body)),  m_destType(DestType::local)
   {
     updateFrom();
     updateDest();
@@ -26,19 +26,20 @@ namespace uzel {
     updateDest();
   }
 
-  Msg::Msg(const std::string &appname, const std::string &hname, Msg::ptree && body)
+  Msg::Msg(const Addr &dest, Msg::ptree && body)
     : m_destType{DestType::service}
   {
     auto localhname = uzel::UConfigS::getUConfig().nodeName();
     setFromLocal();
-    auto realhname = hname;
+    auto realhname = dest.node();
     if(realhname == "localhost") {
       realhname = localhname;
+        // TODO: modify dest?
     }
-    if(!appname.empty() && !hname.empty())
+    if(!dest.app().empty() && !dest.node().empty())
     { // service message to peer
-      m_header.add("to.n", realhname);
-      m_header.add("to.a", appname);
+      m_header.add("to.n", dest.node());
+      m_header.add("to.a", dest.app());
     }
     m_body = Msg::ptree{};
     std::get<Msg::ptree>(m_body).swap(body);

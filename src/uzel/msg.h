@@ -29,7 +29,7 @@ namespace uzel
       /*** construct incoming message */
     explicit Msg(ptree &&header, ptree &&body);
       /** construct outgoing message */
-    Msg(const std::string &appname, const std::string &hname, Msg::ptree && body);
+    Msg(const Addr &dest, Msg::ptree && body);
       /** ctor forwarding message
        * used to forward incoming message
        * @param to where to forward
