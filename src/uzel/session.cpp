@@ -80,7 +80,7 @@ void session::do_read()
 //NOLINTBEGIN(misc-no-recursion)
 void session::do_write()
 {
-  std::cout << "do_write is called" << __PRETTY_FUNCTION__ << std::endl;
+  std::cout <<  __PRETTY_FUNCTION__ << " " << __FILE_NAME__ << ": " << __LINE__ << std::endl;
   if(m_outQueue.empty()) return;
   auto self(shared_from_this());
   std::cout << "writing" << std::endl;
