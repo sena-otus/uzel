@@ -11,11 +11,17 @@ class session;
 class NetClient
 {
 public:
-    /**
-     * @brief ctor
-     * @param io_context asio io context
-     * @param port TCP port to connectect */
+  /**
+   * @brief ctor
+   * @param io_context asio io context
+   * @param port TCP port to connectect */
   NetClient(boost::asio::io_context& io_context, unsigned short port);
+
+  NetClient(const NetClient &) = delete;
+  NetClient(NetClient &&) = delete;
+  NetClient &operator=(const NetClient &) = delete;
+  NetClient &operator=(NetClient &&) = delete;
+  virtual ~NetClient() = default;
 
 
   virtual void dispatch(uzel::Msg &msg) = 0;

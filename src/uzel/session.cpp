@@ -1,4 +1,5 @@
 #include "session.h"
+#include "addr.h"
 
 #include <boost/asio.hpp>
 #include <functional>
@@ -28,7 +29,7 @@ void session::start()
   uzel::Msg::ptree body{};
   body.add("auth.pid", getpid());
 
-  putOutQueue(uzel::Msg("","", std::move(body)));
+  putOutQueue(uzel::Msg(uzel::Addr("",""), std::move(body)));
   do_read();
 }
 
@@ -79,7 +80,7 @@ void session::do_read()
 //NOLINTBEGIN(misc-no-recursion)
 void session::do_write()
 {
-  std::cout << "do_write is called" << std::endl;
+  std::cout << "do_write is called" << __PRETTY_FUNCTION__ << std::endl;
   if(m_outQueue.empty()) return;
   auto self(shared_from_this());
   std::cout << "writing" << std::endl;
@@ -114,7 +115,7 @@ void session::putOutQueue(const uzel::Msg &msg)
 
 void session::putOutQueue(uzel::Msg &&msg)
 {
-  std::cout << "putOutQ&&" << std::endl;
+  std::cout << "inserting message into the output queue to userver " << __FILE_NAME__ << ": " << __LINE__ << std::endl;
   const bool wasEmpty = m_outQueue.empty();
   m_outQueue.emplace(msg.move_tostr());
   if(wasEmpty) {
