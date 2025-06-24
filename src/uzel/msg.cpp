@@ -34,11 +34,10 @@ namespace uzel {
     auto realhname = dest.node();
     if(realhname == "localhost") {
       realhname = localhname;
-        // TODO: modify dest?
     }
     if(!dest.app().empty() && !dest.node().empty())
     { // service message to peer
-      m_header.add("to.n", dest.node());
+      m_header.add("to.n", realhname);
       m_header.add("to.a", dest.app());
     }
     m_body = Msg::ptree{};
