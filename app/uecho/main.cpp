@@ -11,12 +11,12 @@ const int generic_errorcode = 200;
 class NetPrinter : public NetClient
 {
 public:
-  NetPrinter(boost::asio::io_context& io_context)
+  explicit NetPrinter(boost::asio::io_context& io_context)
     : NetClient(io_context, 32300)
   {
   }
 
-  void dispatch(uzel::Msg &msg)
+  void dispatch(uzel::Msg &msg) override
   {
     std::cout << "Got message: " << msg.str();
     uzel::Msg responce(msg.from(), std::move(msg));
