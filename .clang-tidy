@@ -12,6 +12,8 @@ Checks: "*,
 	-hicpp-braces-around-statements,
 	-bugprone-easily-swappable-parameters,
 	-zircon-*,
+        -performance-avoid-endl,
+        -misc-include-cleaner,
 "
 #        -readability-else-after-return,
 #        -readability-static-accessed-through-instance,
