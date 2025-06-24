@@ -115,7 +115,7 @@ void session::putOutQueue(const uzel::Msg &msg)
 
 void session::putOutQueue(uzel::Msg &&msg)
 {
-  std::cout << "inserting message into the output queue to userver " << __FILE_NAME__ << ": " << __LINE__ << std::endl;
+  std::cout << "inserting message to " << msg.dest().app() << "@" << msg.dest().node() << " into the output queue to userver " << __FILE_NAME__ << ": " << __LINE__ << std::endl;
   const bool wasEmpty = m_outQueue.empty();
   m_outQueue.emplace(msg.move_tostr());
   if(wasEmpty) {
