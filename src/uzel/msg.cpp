@@ -29,28 +29,32 @@ namespace uzel {
   Msg::Msg(const Addr &dest, Msg::ptree && body)
     : m_destType{DestType::service}
   {
-    auto localhname = uzel::UConfigS::getUConfig().nodeName();
     setFromLocal();
-    auto realhname = dest.node();
-    if(realhname == "localhost") {
-      realhname = localhname;
-    }
-    if(!dest.app().empty() && !dest.node().empty())
-    { // service message to peer
-      m_header.add("to.n", realhname);
-      m_header.add("to.a", dest.app());
-    }
     m_body = Msg::ptree{};
     std::get<Msg::ptree>(m_body).swap(body);
-    updateDest();
+    setDest(dest);
   }
 
   Msg::Msg(const Addr &dest, Msg &&other)
     : Msg(other)
   {
-    m_dest = dest;
     setFromLocal();
+    setDest(dest);
   }
+
+  void Msg::setDest(const Addr &dest) {
+    auto realhname = dest.node();
+    if(realhname == "localhost") {
+      realhname = uzel::UConfigS::getUConfig().nodeName();
+    }
+    if(!dest.app().empty() && !dest.node().empty())
+    { // service message to peer
+      m_header.put("to.n", realhname);
+      m_header.put("to.a", dest.app());
+    }
+    updateDest();
+  }
+
 
   void Msg::setFromLocal()
   {

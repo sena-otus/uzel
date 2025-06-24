@@ -50,6 +50,7 @@ namespace uzel
     [[nodiscard]] const ptree& header() const;
       // const ptree& body() const;
   private:
+    void setDest(const Addr &dest);
     void updateDest();
     void updateFrom();
     void setFromLocal();
