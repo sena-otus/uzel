@@ -1,9 +1,10 @@
 #include "session.h"
 #include "addr.h"
+#include "dbg.h"
 
 #include <boost/asio.hpp>
-#include <functional>
 #include <iostream>
+
 
 using boost::asio::ip::tcp;
 
@@ -71,7 +72,7 @@ void session::do_read()
             do_read();
           }
           else {
-            std::cout << "close connection\n";
+            BOOST_LOG_TRIVIAL(error) << " error reading from socket: " << ec.message();
           }
         }
       });
@@ -80,7 +81,7 @@ void session::do_read()
 //NOLINTBEGIN(misc-no-recursion)
 void session::do_write()
 {
-  std::cout <<  __PRETTY_FUNCTION__ << " " << __FILE_NAME__ << ": " << __LINE__ << std::endl;
+  BOOST_LOG_TRIVIAL(debug) << DBGOUTF;
   if(m_outQueue.empty()) return;
   auto self(shared_from_this());
   boost::asio::async_write(
@@ -88,8 +89,8 @@ void session::do_write()
     [this, self](boost::system::error_code ec, std::size_t /*length*/)
       {
         if(ec) {
-          std::cerr << "got error while sending reply: " << ec.message() << std::endl;
-        } else {
+          BOOST_LOG_TRIVIAL(error) << "got error while sending reply: " << ec.message();
+       } else {
           std::cout << "writing succeed " << m_outQueue.front() << std::endl;
           m_outQueue.pop();
           if(m_outQueue.empty()) {
@@ -114,7 +115,7 @@ void session::putOutQueue(const uzel::Msg &msg)
 
 void session::putOutQueue(uzel::Msg &&msg)
 {
-  std::cout << "inserting message to " << msg.dest().app() << "@" << msg.dest().node() << " into the output queue to userver " << __FILE_NAME__ << ": " << __LINE__ << std::endl;
+  BOOST_LOG_TRIVIAL(debug) << __FILE_NAME__ << ": " << __LINE__ << " inserting message to '" << msg.dest().app() << "@" << msg.dest().node() << "' into the output queue";
   const bool wasEmpty = m_outQueue.empty();
   m_outQueue.emplace(msg.move_tostr());
   if(wasEmpty) {
