@@ -13,13 +13,13 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Boost REQUIRED COMPONENTS thread system filesystem)
+find_package(Boost REQUIRED COMPONENTS thread system filesystem log)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(WITH_CLANG_TIDY)
   find_program(CLANGTIDY NAMES clang-tidy-19 lang-tidy-15 clang-tidy-14 clang-tidy REQUIRED)
-  set(CMAKE_CXX_CLANG_TIDY "${CLANGTIDY}")
+  set(CMAKE_CXX_CLANG_TIDY "${CLANGTIDY};--extra-arg=-Wno-enum-constexpr-conversion")
   message(NOTICE "found and enabled CLANGTIDY=${CLANGTIDY}")
 endif()
 

@@ -1,17 +1,20 @@
 #include "netserver.h"
 #include <uzel/session.h>
 #include <uzel/uconfig.h>
+#include <algorithm>
+#include <boost/log/trivial.hpp>
 
 using boost::asio::ip::tcp;
+using std::for_each;
 namespace io = boost::asio;
 namespace sys = boost::system;
 
 const int delay_reconnect_s = 10;
-const int resolver_threads = 1;
+const int resolver_threads = 5;
 
 
 NetServer::NetServer(io::io_context& io_context, unsigned short port)
-  : m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),  m_aresolver{5, io_context}, m_iocontext(io_context)
+  : m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),  m_aresolver{resolver_threads, io_context}, m_iocontext(io_context)
 {
     // that throws exception!
     // TODO:  check how to properly set an option
@@ -46,9 +49,9 @@ void NetServer::startResolving(const std::string &hname)
 void NetServer::connectResolved(const sys::error_code ec, const tcp::resolver::results_type rezit)
 {
   if(ec) {
-    std::cout  << "error resolving: "  <<  ec.message() << "\n";
+    BOOST_LOG_TRIVIAL(error) << "error resolving: "  <<  ec.message();
   } else {
-    std::cout << "connecting to  "  << rezit->host_name() << "->" << rezit->endpoint() << "...\n";
+    BOOST_LOG_TRIVIAL(info) << "connecting to  "  << rezit->host_name() << "->" << rezit->endpoint() << "...";
     tcp::socket sock{m_iocontext};
     auto unauth = std::make_shared<session>(std::move(sock));
     unauth->s_connect_error.connect([&](const std::string &hname){ reconnectAfterDelay(hname);});
@@ -87,20 +90,18 @@ void NetServer::localMsg(uzel::Msg & msg)
 
 void NetServer::localbroadcastMsg(uzel::Msg & msg)
 {
-  std::for_each(m_locals.begin(), m_locals.end(),
-                [&msg](auto &sp){
-                  sp.second->putOutQueue(msg);
-                });
+  std::ranges::for_each(m_locals,
+                        [&msg](auto &sp){
+                          sp.second->putOutQueue(msg);
+                        });
 
 }
 
 
 void NetServer::broadcastMsg(uzel::Msg & msg)
 {
-  std::for_each(m_remotes.begin(), m_remotes.end(),
-                [&msg](auto &sp){
-                  sp.second->putOutQueue(msg);
-                });
+  std::ranges::for_each(m_remotes,
+           [&msg](auto &sp) { sp.second->putOutQueue(msg); });
 }
 
 
@@ -144,15 +145,16 @@ void NetServer::dispatch(uzel::Msg &msg)
 void NetServer::auth(session::shr_t ss)
 {
   if(ss->msg1().fromLocal()) {
-    std::cout << "store local session with name " << ss->msg1().from().app() << "\n";
+    BOOST_LOG_TRIVIAL(debug) << __PRETTY_FUNCTION__ << ": store local session with name " << ss->msg1().from().app();
     m_locals.emplace(ss->msg1().from().app(), ss);
   } else {
     auto rname = ss->msg1().from().node();
     auto sit = m_remotes.find(rname);
     if(sit == m_remotes.end()) { // first connection
       m_remotes[rname] = ss;
-    }
-    else {
+      BOOST_LOG_TRIVIAL(info) << __PRETTY_FUNCTION__ << ": first connection from remote " << rname;
+    } else {
+      BOOST_LOG_TRIVIAL(info) << __PRETTY_FUNCTION__ << ": secondary connection or new connection from remote " << rname;
         // secondary connection or new connection
         // * secondary connection will have the same remote UUID
         // * new connection will have new remote UUID, that could be

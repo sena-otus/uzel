@@ -13,7 +13,7 @@ namespace uzel
       /** Same as above, but address in one string
        * @param fulladdr <appname>[@<nodename>]
        */
-    Addr(const std::string &fulladdr);
+    explicit Addr(const std::string &fulladdr);
     [[nodiscard]] std::string app() const {return m_appname;}
     [[nodiscard]] std::string node() const {return m_nodename;}
   private:

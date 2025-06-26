@@ -83,7 +83,6 @@ void session::do_write()
   std::cout <<  __PRETTY_FUNCTION__ << " " << __FILE_NAME__ << ": " << __LINE__ << std::endl;
   if(m_outQueue.empty()) return;
   auto self(shared_from_this());
-  std::cout << "writing" << std::endl;
   boost::asio::async_write(
     m_socket, boost::asio::buffer(m_outQueue.front()),
     [this, self](boost::system::error_code ec, std::size_t /*length*/)

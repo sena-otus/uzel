@@ -18,7 +18,7 @@ namespace uzel
   class Msg
   {
   public:
-    enum DestType
+    enum class DestType
     {
       local, remote, broadcast, localbroadcast, service
     };

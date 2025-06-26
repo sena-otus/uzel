@@ -13,8 +13,9 @@
 
 namespace uzel {
   Msg::Msg(Msg::ptree &&header, std::string &&body)
-    : m_header(header), m_body(std::move(body)),  m_destType(DestType::local)
+    : m_body(std::move(body)),  m_destType(DestType::local)
   {
+    m_header.swap(header);
     updateFrom();
     updateDest();
   }

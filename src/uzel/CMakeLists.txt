@@ -7,7 +7,7 @@ add_library(uzel
   netclient.cpp
 )
 
-target_link_libraries(uzel PUBLIC Boost::boost Boost::thread Boost::system)
+target_link_libraries(uzel PUBLIC Boost::boost Boost::thread Boost::system Boost::log)
 
 set_target_properties(uzel PROPERTIES
     CXX_STANDARD 20
