@@ -47,6 +47,16 @@ void session::startConnection(const tcp::resolver::results_type &remote)
 }
 
 
+void session::takeOverMessages(session &os)
+{
+  while(!os.m_outQueue.empty())
+  {
+    m_outQueue.emplace(os.m_outQueue.front());
+    os.m_outQueue.pop();
+  }
+}
+
+
 
 void session::connectHandler(const boost::system::error_code &ec, const tcp::resolver::results_type &remote)
 {

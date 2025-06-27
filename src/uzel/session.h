@@ -40,6 +40,8 @@ public:
   void start();
   void putOutQueue(const uzel::Msg& msg);
   void putOutQueue(uzel::Msg&& msg);
+    // take over processing of the messages from another (old) session
+  void takeOverMessages(session &os);
 private:
   void do_read();
   void do_write();

@@ -71,8 +71,14 @@ void NetClient::dispatch(uzel::Msg &msg)
 void NetClient::auth(session::shr_t ss)
 {
   if(ss->msg1().fromLocal()) {
-    BOOST_LOG_TRIVIAL(info) << "store local session with name " << ss->msg1().from().app();
-    m_locals.emplace(ss->msg1().from().app(), ss);
+    auto appname = ss->msg1().from().app();
+    BOOST_LOG_TRIVIAL(info) << "store local session with name " << appname;
+    auto oldSessionIt = m_locals.find(appname);
+    if(oldSessionIt != m_locals.end()) {
+        // found old session: move old messages from it to the new session
+      ss->takeOverMessages(*(oldSessionIt->second));
+    }
+    m_locals.emplace(appname, ss);
     s_authSuccess();
   } else {
     BOOST_LOG_TRIVIAL(error) << "connected to something wrong, close connnection and reconnect after delay...";
