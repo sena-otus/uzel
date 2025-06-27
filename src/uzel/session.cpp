@@ -3,6 +3,7 @@
 #include "dbg.h"
 
 #include <boost/asio.hpp>
+#include <boost/log/trivial.hpp>
 #include <iostream>
 
 
@@ -50,7 +51,7 @@ void session::startConnection(const tcp::resolver::results_type &remote)
 void session::connectHandler(const boost::system::error_code &ec, const tcp::resolver::results_type &remote)
 {
   if(ec) {
-    std::cerr << "connection error: " << ec.message() << " when connecting to " << remote->host_name() << "->" << remote->endpoint()<< std::endl;
+    BOOST_LOG_TRIVIAL(error) << "connection error: " << ec.message() << " when connecting to " << remote->host_name() << "->" << remote->endpoint();
     s_connect_error(remote->host_name());
   } else {
     start();
@@ -91,7 +92,7 @@ void session::do_write()
         if(ec) {
           BOOST_LOG_TRIVIAL(error) << "got error while sending reply: " << ec.message();
        } else {
-          std::cout << "writing succeed " << m_outQueue.front() << std::endl;
+          BOOST_LOG_TRIVIAL(debug) << DBGOUT << "writing succeed " << m_outQueue.front();
           m_outQueue.pop();
           if(m_outQueue.empty()) {
             return;
@@ -105,7 +106,7 @@ void session::do_write()
 
 void session::putOutQueue(const uzel::Msg &msg)
 {
-  std::cout << "putOutQ&" << std::endl;
+  BOOST_LOG_TRIVIAL(debug) << DBGOUTF;
   const bool wasEmpty = m_outQueue.empty();
   m_outQueue.emplace(msg.str());
   if(wasEmpty) {
@@ -115,7 +116,7 @@ void session::putOutQueue(const uzel::Msg &msg)
 
 void session::putOutQueue(uzel::Msg &&msg)
 {
-  BOOST_LOG_TRIVIAL(debug) << __FILE_NAME__ << ": " << __LINE__ << " inserting message to '" << msg.dest().app() << "@" << msg.dest().node() << "' into the output queue";
+  BOOST_LOG_TRIVIAL(debug) << DBGOUTF << " inserting message to '" << msg.dest().app() << "@" << msg.dest().node() << "' into the output queue";
   const bool wasEmpty = m_outQueue.empty();
   m_outQueue.emplace(msg.move_tostr());
   if(wasEmpty) {

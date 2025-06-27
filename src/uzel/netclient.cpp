@@ -1,11 +1,13 @@
 #include "netclient.h"
 #include "session.h"
 #include "msg.h"
+#include "dbg.h"
 
 //#include "uconfig.h"
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/io_context.hpp>
+#include <boost/log/trivial.hpp>
 #include <boost/ref.hpp> // NOLINT(misc-include-cleaner)
 #include <boost/chrono.hpp> // NOLINT(misc-include-cleaner)
 #include <boost/system/error_code.hpp>
@@ -30,7 +32,7 @@ NetClient::NetClient(io::io_context& io_context, unsigned short port)
 
 void NetClient::start()
 {
-  std::cout << "resolve localhost...\n";
+  BOOST_LOG_TRIVIAL(debug) << DBGOUT << "resolve localhost...";
   m_aresolver.async_resolve<tcp>("localhost", std::to_string(m_port),
                                  [this](const boost::system::error_code ec, const tcp::resolver::results_type &resit){
                                    connectResolved(ec,resit);
@@ -47,11 +49,11 @@ void NetClient::reconnectAfterDelay()
 void NetClient::connectResolved(const boost::system::error_code ec, const tcp::resolver::results_type &rezit)
 {
   if(ec) {
-    std::cout  << "error resolving: "  <<  ec.message() << "\n";
+    BOOST_LOG_TRIVIAL(error)  << "error resolving: "  <<  ec.message();
       // sleep 10 seconds and try to resolve again
     reconnectAfterDelay();
   } else {
-    std::cout << "connecting to  "  << rezit->host_name() << "->" << rezit->endpoint() << "...\n";
+    BOOST_LOG_TRIVIAL(info) << "connecting to  "  << rezit->host_name() << "->" << rezit->endpoint();
     tcp::socket sock{m_work->get_io_context()};
     auto unauth = std::make_shared<session>(std::move(sock));
     unauth->s_connect_error.connect([&](const std::string &){ reconnectAfterDelay();});
@@ -69,11 +71,11 @@ void NetClient::dispatch(uzel::Msg &msg)
 void NetClient::auth(session::shr_t ss)
 {
   if(ss->msg1().fromLocal()) {
-    std::cout << "store local session with name " << ss->msg1().from().app() << "\n";
+    BOOST_LOG_TRIVIAL(info) << "store local session with name " << ss->msg1().from().app();
     m_locals.emplace(ss->msg1().from().app(), ss);
     s_authSuccess();
   } else {
-    std::cerr << "connected to something wrong, close connnection and reconnect after delay...\n" << std::flush ;
+    BOOST_LOG_TRIVIAL(error) << "connected to something wrong, close connnection and reconnect after delay...";
       // throw std::runtime_error("should not get remote connection here");
     ss->disconnect();
     reconnectAfterDelay();

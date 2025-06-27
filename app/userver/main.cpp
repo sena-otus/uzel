@@ -1,7 +1,6 @@
 #include "netserver.h"
 
-#include <iostream>
-#include <stdexcept>
+#include <uzel/dbg.h>
 
 
 const int generic_errorcode = 200;
@@ -20,7 +19,7 @@ int main(int argc, char* argv[])
   }
   catch (const std::exception& ex)
   {
-    std::cerr << "Exception: " << ex.what() << "\n";
+    BOOST_LOG_TRIVIAL(error) << "Exception: " << ex.what();
     return generic_errorcode;
   }
 

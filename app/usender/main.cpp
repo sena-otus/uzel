@@ -1,5 +1,7 @@
 #include "uzel/addr.h"
 #include "uzel/msg.h"
+#include "uzel/dbg.h"
+#include <boost/log/trivial.hpp>
 #include <uzel/netclient.h>
 
 #include <iostream>
@@ -19,18 +21,18 @@ public:
     : NetClient(io_context, 32300),  m_sendTimer(io_context, io::chrono::seconds(send_s)), m_addrto(std::move(addr))
   {
     s_authSuccess.connect([&](){
-      std::cout << "auth is fired, calling sendMsg()" << std::endl;
+      BOOST_LOG_TRIVIAL(debug) << DBGOUT << "auth is fired, calling sendMsg()";
       sendMsg();});
   }
 
   void dispatch(uzel::Msg &msg)
   {
-    std::cout << "Got message: " << msg.str();
+    BOOST_LOG_TRIVIAL(debug) << "Got message: " << msg.str();
   }
 
   void sendMsg()
   {
-    std::cout << "sendMsg() is called at " << __FILE_NAME__ << ": " << __LINE__ << std::endl;
+    BOOST_LOG_TRIVIAL(debug) << DBGOUTF;
     m_sendTimer.expires_after(io::chrono::seconds(send_s));
     m_sendTimer.async_wait([this](const boost::system::error_code&  /*ec*/){sendMsg();});
 
@@ -51,7 +53,7 @@ int main(int argc, char* argv[])
     boost::asio::io_context io_context;
     if(argc < 2)
     {
-      std::cerr << "Usage : \n  usender <appname>[@<hostname>]" << std::endl;
+      BOOST_LOG_TRIVIAL(error) << "Usage : \n  usender <appname>[@<hostname>]";
       ::exit(150);
     }
 
@@ -61,7 +63,7 @@ int main(int argc, char* argv[])
   }
   catch (const std::exception& ex)
   {
-    std::cerr << "Exception: " << ex.what() << "\n";
+    BOOST_LOG_TRIVIAL(error) << "Exception: " << ex.what();
     return generic_errorcode;
   }
 

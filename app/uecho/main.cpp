@@ -1,3 +1,5 @@
+#include "uzel/dbg.h"
+#include <boost/log/trivial.hpp>
 #include <uzel/netclient.h>
 
 #include <iostream>
@@ -18,7 +20,7 @@ public:
 
   void dispatch(uzel::Msg &msg) override
   {
-    std::cout << "Got message: " << msg.str();
+    BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "Got message: " << msg.str();
     uzel::Msg responce(msg.from(), std::move(msg));
     send(std::move(responce));
   }
@@ -39,7 +41,7 @@ int main(int argc, char* argv[])
   }
   catch (const std::exception& ex)
   {
-    std::cerr << "Exception: " << ex.what() << "\n";
+    BOOST_LOG_TRIVIAL(error) << "Exception: " << ex.what();
     return generic_errorcode;
   }
 
