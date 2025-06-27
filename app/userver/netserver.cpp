@@ -1,8 +1,9 @@
 #include "netserver.h"
 #include <uzel/session.h>
 #include <uzel/uconfig.h>
+#include <uzel/dbg.h>
+
 #include <algorithm>
-#include <boost/log/trivial.hpp>
 
 using boost::asio::ip::tcp;
 using std::for_each;
@@ -145,16 +146,16 @@ void NetServer::dispatch(uzel::Msg &msg)
 void NetServer::auth(session::shr_t ss)
 {
   if(ss->msg1().fromLocal()) {
-    BOOST_LOG_TRIVIAL(debug) << __PRETTY_FUNCTION__ << ": store local session with name " << ss->msg1().from().app();
+    BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "local connection, store local session with name " << ss->msg1().from().app();
     m_locals.emplace(ss->msg1().from().app(), ss);
   } else {
     auto rname = ss->msg1().from().node();
     auto sit = m_remotes.find(rname);
     if(sit == m_remotes.end()) { // first connection
       m_remotes[rname] = ss;
-      BOOST_LOG_TRIVIAL(info) << __PRETTY_FUNCTION__ << ": first connection from remote " << rname;
+      BOOST_LOG_TRIVIAL(info) << "first connection from remote " << rname;
     } else {
-      BOOST_LOG_TRIVIAL(info) << __PRETTY_FUNCTION__ << ": secondary connection or new connection from remote " << rname;
+      BOOST_LOG_TRIVIAL(info) << "secondary connection or new connection from remote " << rname;
         // secondary connection or new connection
         // * secondary connection will have the same remote UUID
         // * new connection will have new remote UUID, that could be

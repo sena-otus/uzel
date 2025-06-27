@@ -18,9 +18,9 @@ namespace uzel
           m_header = Msg::ptree();
           boost::property_tree::read_json(is, *m_header);
           {
-            auto host = m_header->get<std::string>("from.h", "?");
-            auto appn = m_header->get<std::string>("from.n", "?");
-            BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "got header of the msg from " << appn << "@"  << host;
+            auto node = m_header->get<std::string>("from.n", "?");
+            auto appn = m_header->get<std::string>("from.a", "?");
+            BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "got header of the msg from " << appn << "@"  << node;
           }
             // body can be inside header for small messages
           auto bodyit = m_header->find("body");
