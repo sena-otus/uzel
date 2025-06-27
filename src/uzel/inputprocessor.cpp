@@ -1,8 +1,9 @@
 #include "inputprocessor.h"
 #include "msg.h"
+#include "dbg.h"
 
+#include <boost/log/trivial.hpp>
 #include <boost/property_tree/json_parser.hpp>
-#include <iostream>
 
 namespace uzel
 {
@@ -16,9 +17,11 @@ namespace uzel
         try {
           m_header = Msg::ptree();
           boost::property_tree::read_json(is, *m_header);
-          // auto host = m_header->get<std::string>("from.h", "?");
-          // auto appn = m_header->get<std::string>("from.n", "?");
-          // std::cout << "got header of the msg from " << appn << "@"  << host << "\n";
+          {
+            auto host = m_header->get<std::string>("from.h", "?");
+            auto appn = m_header->get<std::string>("from.n", "?");
+            BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "got header of the msg from " << appn << "@"  << host;
+          }
             // body can be inside header for small messages
           auto bodyit = m_header->find("body");
           if(bodyit != m_header->not_found()) {
@@ -30,7 +33,7 @@ namespace uzel
           m_header.reset();
         }
         catch (...) {
-          std::cerr << "Closing connection because can not parse received json header " << *line << "\n";
+          BOOST_LOG_TRIVIAL(error) << "Closing connection because can not parse received json header " << *line;
           return false;
         }
         continue;
@@ -54,7 +57,7 @@ namespace uzel
     auto app = msg.from().app();
     auto node = msg.from().node();
     if(app.empty() || node.empty()) {
-      std::cerr << "no source appname or nodename in first message - refuse connection\n";
+      BOOST_LOG_TRIVIAL(error) << "no source appname or nodename in first message - refuse connection";
       return false;
     }
     bool isLocal = UConfigS::getUConfig().isLocalNode(node);
@@ -63,28 +66,28 @@ namespace uzel
     {
       if(isLocal) {
         if(app == "userver") {
-          std::cerr << "refuse loop connection userver@" << node << "<->userver@" << node<< "\n";
+          BOOST_LOG_TRIVIAL(error) << "refuse loop connection userver@" << node << "<->userver@" << node;
           return false;
         }
       } else { // remote
         if(app != "userver") {
-          std::cerr << "refuse remote connection to userver from non-userver\n";
+          BOOST_LOG_TRIVIAL(error) << "refuse remote connection to userver from non-userver";
           return false;
         }
       }
     } else { //  normal app
       if(!isLocal) {
-        std::cerr << "refuse remote connecting to " << app << "@" << node << "\n";
+        BOOST_LOG_TRIVIAL(error) << "refuse remote connecting to " << app << "@" << node;
         return false;
       }
       if(app != "userver") {
-        std::cerr << "refuse connecting to " << app << "@" << node << "\n";
+        BOOST_LOG_TRIVIAL(error) << "refuse connecting to " << app << "@" << node;
         return false;
       }
     }
     m_peer = msg.from();
-    std::cout << "authenticated "<< (isLocal ? "local" : "remote")
-              << " connection from " << m_peer.app() << "@" << m_peer.node() << "\n";
+    BOOST_LOG_TRIVIAL(info) << "authenticated "<< (isLocal ? "local" : "remote")
+              << " connection from " << m_peer.app() << "@" << m_peer.node();
     return true;
   }
 
