@@ -118,7 +118,12 @@ void session::putOutQueue(uzel::Msg &&msg)
 {
   BOOST_LOG_TRIVIAL(debug) << DBGOUTF << " inserting message to '" << msg.dest().app() << "@" << msg.dest().node() << "' into the output queue";
   const bool wasEmpty = m_outQueue.empty();
-  m_outQueue.emplace(msg.move_tostr());
+  {
+    auto && str = msg.move_tostr();
+    BOOST_LOG_TRIVIAL(debug) << DBGOUTF << " str to insert: " << str;
+    m_outQueue.emplace(str);
+    BOOST_LOG_TRIVIAL(debug) << DBGOUTF << " inserted, new output queue size is: " << m_outQueue.size();
+  }
   if(wasEmpty) {
     do_write();
   }
