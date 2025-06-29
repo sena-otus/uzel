@@ -1,5 +1,7 @@
 #pragma once
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
+
 #include <utility>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/post.hpp>
