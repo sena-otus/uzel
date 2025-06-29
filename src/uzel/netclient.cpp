@@ -34,8 +34,8 @@ void NetClient::start()
 {
   BOOST_LOG_TRIVIAL(debug) << DBGOUT << "resolve localhost...";
   m_aresolver.async_resolve<tcp>("localhost", std::to_string(m_port),
-                                 [this](const boost::system::error_code ec, const tcp::resolver::results_type &resit){
-                                   connectResolved(ec,resit);
+                                 [this](const boost::system::error_code ec, const tcp::resolver::results_type resit){
+                                   connectResolved(ec,resit,"localhost");
                                  });
 }
 
@@ -46,10 +46,10 @@ void NetClient::reconnectAfterDelay()
   m_reconnectTimer.async_wait([this](const boost::system::error_code&  /*ec*/){start();});
 }
 
-void NetClient::connectResolved(const boost::system::error_code ec, const tcp::resolver::results_type &rezit)
+void NetClient::connectResolved(const boost::system::error_code ec, const tcp::resolver::results_type &rezit, const std::string &hname)
 {
   if(ec) {
-    BOOST_LOG_TRIVIAL(error)  << "error resolving: "  <<  ec.message();
+    BOOST_LOG_TRIVIAL(error)  << "error resolving '" << hname  << "' :" <<  ec.message();
       // sleep 10 seconds and try to resolve again
     reconnectAfterDelay();
   } else {

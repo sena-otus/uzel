@@ -34,7 +34,7 @@ private:
   void do_accept();
   void serviceMsg(uzel::Msg &msg);
   void reconnectAfterDelay();
-  void connectResolved( boost::system::error_code ec,  const boost::asio::ip::tcp::resolver::results_type &rezit);
+  void connectResolved( boost::system::error_code ec,  const boost::asio::ip::tcp::resolver::results_type &rezit, const std::string &hname);
 
   std::map<std::string, session::shr_t> m_locals;
   aresolver m_aresolver;
