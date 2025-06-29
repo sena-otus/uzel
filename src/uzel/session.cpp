@@ -49,6 +49,7 @@ void session::startConnection(const tcp::resolver::results_type &remote)
 
 void session::takeOverMessages(session &os)
 {
+  BOOST_LOG_TRIVIAL(debug) << DBGOUT << "taking over "  << os.m_outQueue.size() << " messsages";
   while(!os.m_outQueue.empty())
   {
     m_outQueue.emplace(os.m_outQueue.front());
@@ -76,14 +77,13 @@ void session::do_read()
     boost::asio::buffer(m_data, max_length),
     [this, self](boost::system::error_code ec, std::size_t length)
       {
-        if (!ec)
-        {
-          if(m_processor.processNewInput(std::string_view(m_data.data(), length)))
-          {
+        if (!ec) {
+          if(m_processor.processNewInput(std::string_view(m_data.data(), length))) {
             do_read();
-          }
-          else {
+          } else {
             BOOST_LOG_TRIVIAL(error) << " error reading from socket: " << ec.message();
+              // do not try to recover, just disconnect
+            disconnect();
           }
         }
       });
@@ -92,15 +92,17 @@ void session::do_read()
 //NOLINTBEGIN(misc-no-recursion)
 void session::do_write()
 {
-  BOOST_LOG_TRIVIAL(debug) << DBGOUTF;
   if(m_outQueue.empty()) return;
   auto self(shared_from_this());
+  BOOST_LOG_TRIVIAL(debug) << DBGOUT << "starting async_write()...";
   boost::asio::async_write(
     m_socket, boost::asio::buffer(m_outQueue.front()),
     [this, self](boost::system::error_code ec, std::size_t /*length*/)
       {
         if(ec) {
-          BOOST_LOG_TRIVIAL(error) << "got error while sending reply: " << ec.message();
+          BOOST_LOG_TRIVIAL(error) << "got error while writing to the socket: " << ec.message();
+            // do not try to recover, just disconnect
+          disconnect();
        } else {
           BOOST_LOG_TRIVIAL(debug) << DBGOUT << "writing succeed " << m_outQueue.front();
           m_outQueue.pop();
@@ -116,7 +118,7 @@ void session::do_write()
 
 void session::putOutQueue(const uzel::Msg &msg)
 {
-  BOOST_LOG_TRIVIAL(debug) << DBGOUTF;
+  BOOST_LOG_TRIVIAL(debug) << DBGOUT << " inserting2 message to '" << msg.dest().app() << "@" << msg.dest().node() << "' into the output queue";
   const bool wasEmpty = m_outQueue.empty();
   m_outQueue.emplace(msg.str());
   if(wasEmpty) {
@@ -126,13 +128,13 @@ void session::putOutQueue(const uzel::Msg &msg)
 
 void session::putOutQueue(uzel::Msg &&msg)
 {
-  BOOST_LOG_TRIVIAL(debug) << DBGOUTF << " inserting message to '" << msg.dest().app() << "@" << msg.dest().node() << "' into the output queue";
+  BOOST_LOG_TRIVIAL(debug) << DBGOUT << " inserting message to '" << msg.dest().app() << "@" << msg.dest().node() << "' into the output queue";
   const bool wasEmpty = m_outQueue.empty();
   {
     auto && str = msg.move_tostr();
-    BOOST_LOG_TRIVIAL(debug) << DBGOUTF << " str to insert: " << str;
+    BOOST_LOG_TRIVIAL(debug) << DBGOUT << " str to insert: " << str;
     m_outQueue.emplace(str);
-    BOOST_LOG_TRIVIAL(debug) << DBGOUTF << " inserted, new output queue size is: " << m_outQueue.size();
+    BOOST_LOG_TRIVIAL(debug) << DBGOUT << " inserted, new output queue size is: " << m_outQueue.size();
   }
   if(wasEmpty) {
     do_write();
