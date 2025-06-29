@@ -149,8 +149,12 @@ void NetServer::dispatch(uzel::Msg &msg)
 void NetServer::auth(session::shr_t ss)
 {
   if(ss->msg1().fromLocal()) {
-    BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "local connection, store local session with name " << ss->msg1().from().app();
-    m_locals.emplace(ss->msg1().from().app(), ss);
+    BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "new local connection, store local session with name " << ss->msg1().from().app();
+    auto ssIt = m_locals.find(ss->msg1().from().app());
+    if(ssIt != m_locals.end()) {
+      ss->takeOverMessages(*(ssIt->second));
+    }
+    m_locals[ss->msg1().from().app()] = ss;
   } else {
     auto rname = ss->msg1().from().node();
     auto sit = m_remotes.find(rname);

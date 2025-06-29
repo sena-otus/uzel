@@ -78,7 +78,7 @@ void NetClient::auth(session::shr_t ss)
         // found old session: move old messages from it to the new session
       ss->takeOverMessages(*(oldSessionIt->second));
     }
-    m_locals.emplace(appname, ss);
+    m_locals[appname] = ss;
     s_authSuccess();
   } else {
     BOOST_LOG_TRIVIAL(error) << "connected to something wrong, close connnection and reconnect after delay...";

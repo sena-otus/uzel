@@ -144,5 +144,6 @@ void session::putOutQueue(uzel::Msg &&msg)
 
 void session::disconnect()
 {
+  BOOST_LOG_TRIVIAL(debug) << DBGOUT << " disconnect called!";
   m_socket.close();
 }
