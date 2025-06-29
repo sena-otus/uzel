@@ -30,7 +30,7 @@ private:
   void remoteMsg(uzel::Msg &msg);
   void broadcastMsg(uzel::Msg &msg);
   void localbroadcastMsg(uzel::Msg &msg);
-  void connectResolved( boost::system::error_code ec,  boost::asio::ip::tcp::resolver::results_type rezit);
+  void connectResolved( boost::system::error_code ec,  boost::asio::ip::tcp::resolver::results_type rezit, const std::string &hname);
   void reconnectAfterDelay(const std::string &hname);
   void startResolving(const std::string &hname);
 

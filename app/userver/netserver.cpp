@@ -1,4 +1,5 @@
 #include "netserver.h"
+#include <boost/log/trivial.hpp>
 #include <uzel/session.h>
 #include <uzel/uconfig.h>
 #include <uzel/dbg.h>
@@ -20,7 +21,6 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
     // that throws exception!
     // TODO:  check how to properly set an option
     // m_acceptor.set_option(boost::asio::ip::v6_only(false));
-
   do_accept();
   auto to_connect_to = uzel::UConfigS::getUConfig().remotes();
   for(auto && rhost : to_connect_to)
@@ -40,19 +40,22 @@ void NetServer::reconnectAfterDelay(const std::string &hname)
 
 void NetServer::startResolving(const std::string &hname)
 {
+  BOOST_LOG_TRIVIAL(debug) << DBGOUT << " resolving " << hname << "...";
   m_aresolver.async_resolve<tcp>(hname, "32300",
-                                 [this](const sys::error_code ec, const tcp::resolver::results_type resit){
-                                   connectResolved(ec,resit);
+                                 [this,hname](const sys::error_code ec, const tcp::resolver::results_type resit){
+                                   BOOST_LOG_TRIVIAL(debug) << DBGOUT;
+                                   connectResolved(ec,resit,hname);
                                  });
 }
 
 
-void NetServer::connectResolved(const sys::error_code ec, const tcp::resolver::results_type rezit)
+void NetServer::connectResolved(const sys::error_code ec, const tcp::resolver::results_type rezit, const std::string &hname)
 {
   if(ec) {
-    BOOST_LOG_TRIVIAL(error) << "error resolving: "  <<  ec.message();
+    BOOST_LOG_TRIVIAL(error) << "error resolving '" << hname << "': "<<  ec.message();
+    reconnectAfterDelay(hname);
   } else {
-    BOOST_LOG_TRIVIAL(info) << "connecting to  "  << rezit->host_name() << "->" << rezit->endpoint() << "...";
+    BOOST_LOG_TRIVIAL(info) << "resolved "  << rezit->host_name() << "->" << rezit->endpoint() << ", connecting...";
     tcp::socket sock{m_iocontext};
     auto unauth = std::make_shared<session>(std::move(sock));
     unauth->s_connect_error.connect([&](const std::string &hname){ reconnectAfterDelay(hname);});
