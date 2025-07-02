@@ -11,7 +11,11 @@
 #include <queue>
 
 
-
+/**
+ * class session handles one single (tcp) connection (there can be several between two remotes)
+ * For incoming messages it uses uzel::Inputprocessor for initial
+ * message parsing and dispatch, outgoing messages are queued in m_outQueue
+ *  */
 class session
   : public std::enable_shared_from_this<session>
 {
@@ -34,6 +38,8 @@ public:
   boost::signals2::signal<void (session::shr_t ss)> s_auth;
   boost::signals2::signal<void (uzel::Msg &msg)> s_dispatch;
   boost::signals2::signal<void (const std::string &hostname)> s_connect_error;
+  boost::signals2::signal<void ()> s_send_error;
+  boost::signals2::signal<void ()> s_receive_error;
 
 
   const uzel::Msg& msg1() const {return m_msg1;}

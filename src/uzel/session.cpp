@@ -4,7 +4,6 @@
 
 #include <boost/asio.hpp>
 #include <boost/log/trivial.hpp>
-#include <iostream>
 
 
 using boost::asio::ip::tcp;
@@ -31,7 +30,7 @@ void session::start()
   uzel::Msg::ptree body{};
   body.add("auth.pid", getpid());
 
-  putOutQueue(uzel::Msg(uzel::Addr("",""), std::move(body)));
+  putOutQueue(uzel::Msg(uzel::Addr(), std::move(body)));
   do_read();
 }
 
@@ -82,7 +81,7 @@ void session::do_read()
             do_read();
           } else {
             BOOST_LOG_TRIVIAL(error) << " error reading from socket: " << ec.message();
-              // do not try to recover, just disconnect
+            s_receive_error();
             disconnect();
           }
         }
@@ -101,7 +100,7 @@ void session::do_write()
       {
         if(ec) {
           BOOST_LOG_TRIVIAL(error) << "got error while writing to the socket: " << ec.message();
-            // do not try to recover, just disconnect
+          s_send_error();
           disconnect();
        } else {
           BOOST_LOG_TRIVIAL(debug) << DBGOUT << "writing succeed " << m_outQueue.front();
