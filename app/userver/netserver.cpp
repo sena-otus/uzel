@@ -150,6 +150,9 @@ void NetServer::auth(session::shr_t ss)
 {
   if(ss->msg1().fromLocal()) {
     BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "new local connection, store local session with name " << ss->msg1().from().app();
+      // if local app allows multiple instances, it should add pid to
+      // the appname during auth, something like "usender:1251"
+      // currently only single-instance applications are allowed
     auto ssIt = m_locals.find(ss->msg1().from().app());
     if(ssIt != m_locals.end()) {
       ss->takeOverMessages(*(ssIt->second));
