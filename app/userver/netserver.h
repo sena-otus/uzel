@@ -10,14 +10,14 @@
 
 class session;
 
-/** @brief приложение TCP сервер */
+/** @brief tcp server */
 class NetServer
 {
 public:
     /**
-     * @brief конструктор
-     * @param io_context контекст ввода-вывода бустасио
-     * @param port номер TCP порта на котором сервер будет принимать соединения */
+     * @brief server app ctor
+     * @param io_context boost::asio io context
+     * @param port TCP port to accept connections */
   NetServer(boost::asio::io_context& io_context, unsigned short port);
 
 
