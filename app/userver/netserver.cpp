@@ -1,4 +1,5 @@
 #include "netserver.h"
+#include "uzel/msg.h"
 #include <boost/log/trivial.hpp>
 #include <uzel/session.h>
 #include <uzel/uconfig.h>
@@ -13,6 +14,25 @@ namespace sys = boost::system;
 
 const int delay_reconnect_s = 10;
 const int resolver_threads = 5;
+
+
+remote::remote(std::string nodename)
+  : m_node(std::move(nodename))
+{
+}
+
+
+void remote::addSession(session::shr_t ss)
+{
+  m_session.emplace(m_session.end(), ss);
+}
+
+void remote::send(const uzel::Msg &msg)
+{
+    // the very last session is the highest priority!
+  m_session.back()->putOutQueue(msg);
+}
+
 
 
 NetServer::NetServer(io::io_context& io_context, unsigned short port)
@@ -102,19 +122,19 @@ void NetServer::localbroadcastMsg(uzel::Msg & msg)
 }
 
 
-void NetServer::broadcastMsg(uzel::Msg & msg)
+void NetServer::broadcastMsg(uzel::Msg &msg)
 {
   std::ranges::for_each(m_remotes,
-           [&msg](auto &sp) { sp.second->putOutQueue(msg); });
+           [&msg](auto &sp) { sp.second.send(msg); });
 }
 
 
-void NetServer::remoteMsg(uzel::Msg & msg)
+void NetServer::remoteMsg(const uzel::Msg &msg)
 {
   auto rit = m_remotes.find(msg.dest().node());
   if(rit != m_remotes.end())
   {
-    rit->second->putOutQueue(std::move(msg));
+    rit->second.send(msg);
   }
 }
 
@@ -146,6 +166,24 @@ void NetServer::dispatch(uzel::Msg &msg)
   }
 }
 
+
+void NetServer::addRemote(const std::string &rnode, session::shr_t ss)
+{
+  auto sit = m_remotes.find(rnode);
+  if(sit == m_remotes.end()) { // first connection
+    sit = m_remotes.insert({rnode, remote(rnode)}).first;
+    BOOST_LOG_TRIVIAL(info) << "created new remote channel for node" << rnode;
+  } else {
+    BOOST_LOG_TRIVIAL(info) << "found existing remote channel for node " << rnode;
+      // secondary connection or new connection
+      // * secondary connection will have the same remote UUID
+      // * new connection will have new remote UUID, that could be
+      // ** remote app was restarted
+      // ** remote app is a duplicate
+  }
+  sit->second.addSession(ss);
+}
+
 void NetServer::auth(session::shr_t ss)
 {
   if(ss->msg1().fromLocal()) {
@@ -159,23 +197,7 @@ void NetServer::auth(session::shr_t ss)
     }
     m_locals[ss->msg1().from().app()] = ss;
   } else {
-    auto rname = ss->msg1().from().node();
-    auto sit = m_remotes.find(rname);
-    if(sit == m_remotes.end()) { // first connection
-      m_remotes[rname] = ss;
-      BOOST_LOG_TRIVIAL(info) << "first connection from remote " << rname;
-    } else {
-      BOOST_LOG_TRIVIAL(info) << "secondary connection or new connection from remote " << rname;
-        // secondary connection or new connection
-        // * secondary connection will have the same remote UUID
-        // * new connection will have new remote UUID, that could be
-        // ** remote app was restarted
-        // ** remote app is a duplicate
-
-        // store new connection as main and old one move to secondary
-      m_remotes2[rname].emplace_front(std::move(sit->second));
-      sit->second = ss;
-        // TODO: cleanup old connections
-    }
+    auto rnode = ss->msg1().from().node();
+    addRemote(rnode, ss);
   }
 }
