@@ -25,6 +25,7 @@ remote::remote(std::string nodename)
 void remote::addSession(session::shr_t ss)
 {
   m_session.emplace(m_session.end(), ss);
+  BOOST_LOG_TRIVIAL(debug) << " there are now " << m_session.size() << " session(s) for " << m_node;
 }
 
 void remote::send(const uzel::Msg &msg)

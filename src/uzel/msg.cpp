@@ -70,11 +70,16 @@ namespace uzel {
   std::string Msg::str() const
   {
     std::ostringstream oss;
-    boost::property_tree::write_json(oss, m_header, false);
     if(m_body.index() == 0) {
+      boost::property_tree::write_json(oss, m_header, false);
       oss << std::get<std::string>(m_body) << "\n";
     } else {
+      boost::property_tree::write_json(oss, m_header, false);
       boost::property_tree::write_json(oss, std::get<ptree>(m_body), false);
+        // or embed the body into the header:
+        // auto fullmsg = m_header;
+        // fullmsg.put_child("body", std::get<ptree>(m_body));
+        // boost::property_tree::write_json(oss, fullmsg, false);
     }
     return oss.str();
   }
