@@ -20,7 +20,7 @@ namespace uzel
           {
             auto node = m_header->get<std::string>("from.n", "?");
             auto appn = m_header->get<std::string>("from.a", "?");
-            BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "got header of the msg from " << appn << "@"  << node;
+            BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "got header of the msg from " << appn << "@"  << node << " processed line: '" << *line << "'";
           }
             // body can be inside header for small messages
           auto bodyit = m_header->find("body");
@@ -29,8 +29,8 @@ namespace uzel
             body.swap(bodyit->second);
             m_header->erase("body");
             processMsg(Msg(std::move(*m_header), std::move(body)));
+            m_header.reset();
           }
-          m_header.reset();
         }
         catch (...) {
           BOOST_LOG_TRIVIAL(error) << "Closing connection because can not parse received json header " << *line;
