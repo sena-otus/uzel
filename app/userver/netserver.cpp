@@ -30,6 +30,12 @@ void remote::addSession(session::shr_t ss)
 
 void remote::send(const uzel::Msg &msg)
 {
+  if(m_session.empty())
+  {
+      // no connection yet, so save in a remote queue
+    putOutQueue(msg);
+  }
+
     // the very last session is the highest priority!
   m_session.back()->putOutQueue(msg);
 }
