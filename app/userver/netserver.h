@@ -47,6 +47,7 @@ private:
   void reconnectAfterDelay(const std::string &hname);
   void startResolving(const std::string &hname);
   void addRemote(const std::string &rnode, session::shr_t ss);
+  void on_session_error(session::shr_t ss);
 
   boost::asio::ip::tcp::acceptor m_acceptor;
   std::map<std::string, session::shr_t> m_locals;

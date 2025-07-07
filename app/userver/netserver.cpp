@@ -88,7 +88,24 @@ void NetServer::connectResolved(const sys::error_code ec, const tcp::resolver::r
     unauth->s_connect_error.connect([&](const std::string &hname){ reconnectAfterDelay(hname);});
     unauth->s_auth.connect([&](session::shr_t ss){ auth(ss); });
     unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
+    unauth->s_send_error.connect([&](session::shr_t ss){ });
+    unauth->s_receive_error.connect([&](session::shr_t ss){ });
     unauth->startConnection(rezit);
+  }
+}
+
+
+void NetServer::on_session_error(session::shr_t ss)
+{
+  ss->disconnect();
+  auto rsit = m_remotes.find(ss->node());
+  if(rsit == m_remotes.end())
+  {
+    return;
+  }
+  if(rsit->m_session == ss)
+  {
+
   }
 }
 
