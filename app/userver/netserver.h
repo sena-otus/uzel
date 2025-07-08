@@ -2,11 +2,9 @@
 
 #include <uzel/aresolver.h>
 #include <uzel/session.h>
-#include <utility>
 #include <boost/asio.hpp>
 #include <list>
 #include <map>
-#include <memory>
 
 class session;
 
@@ -17,9 +15,12 @@ public:
   explicit remote(std::string name);
   void addSession(session::shr_t);
   void send(const uzel::Msg &msg);
+  [[nodiscard]] bool connected() const;
 private:
   std::string m_node; ///! remote node name
   std::list<session::shr_t> m_session; ///! keeps list of tcp sessions
+  std::queue<std::string> m_outHighQueue; ///! high prirority outgoing queue
+  std::queue<std::string> m_outLowQueue; ///! low priority outgoing queue
 };
 
 
@@ -46,7 +47,10 @@ private:
   void connectResolved( boost::system::error_code ec,  boost::asio::ip::tcp::resolver::results_type rezit, const std::string &hname);
   void reconnectAfterDelay(const std::string &hname);
   void startResolving(const std::string &hname);
-  void addRemote(const std::string &rnode, session::shr_t ss);
+  std::optional<std::string> route(const std::string &target) const;
+
+    /** add authenticated session to remote channel */
+  void addAuthSessionToRemote(const std::string &rnode, session::shr_t ss);
   void on_session_error(session::shr_t ss);
 
   boost::asio::ip::tcp::acceptor m_acceptor;

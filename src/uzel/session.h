@@ -48,6 +48,7 @@ public:
   void putOutQueue(uzel::Msg&& msg);
     // take over processing of the messages from another (old) session
   void takeOverMessages(session &os);
+  void takeOverMessages(std::queue<std::string> &oq);
 private:
   void do_read();
   void do_write();

@@ -48,11 +48,17 @@ void session::startConnection(const tcp::resolver::results_type &remote)
 
 void session::takeOverMessages(session &os)
 {
-  BOOST_LOG_TRIVIAL(debug) << DBGOUT << "taking over "  << os.m_outQueue.size() << " messsages";
-  while(!os.m_outQueue.empty())
+  takeOverMessages(os.m_outQueue);
+}
+
+
+void session::takeOverMessages(std::queue<std::string> &oq)
+{
+  BOOST_LOG_TRIVIAL(debug) << DBGOUT << "taking over "  << oq.size() << " messsages";
+  while(!oq.empty())
   {
-    m_outQueue.emplace(os.m_outQueue.front());
-    os.m_outQueue.pop();
+    m_outQueue.emplace(oq.front());
+    oq.pop();
   }
 }
 

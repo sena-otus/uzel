@@ -26,18 +26,29 @@ void remote::addSession(session::shr_t ss)
 {
   m_session.emplace(m_session.end(), ss);
   BOOST_LOG_TRIVIAL(debug) << " there are now " << m_session.size() << " session(s) for " << m_node;
+  if(m_session.size() == 1)
+  { // first session
+    ss->takeOverMessages(m_outHighQueue);
+  }
 }
+
+bool remote::connected() const
+{
+  return !m_session.empty();
+}
+
 
 void remote::send(const uzel::Msg &msg)
 {
   if(m_session.empty())
   {
-      // no connection yet, so save in a remote queue
-    putOutQueue(msg);
+      // no connection
+    m_outHighQueue.emplace(msg.str());
   }
-
-    // the very last session is the highest priority!
-  m_session.back()->putOutQueue(msg);
+  else {
+      // the very last session is the highest priority!
+    m_session.back()->putOutQueue(msg);
+  }
 }
 
 
@@ -153,12 +164,31 @@ void NetServer::broadcastMsg(uzel::Msg &msg)
 }
 
 
+std::optional<std::string> NetServer::route(const std::string &target)
+{
+  return std::nullopt;
+}
+
+
+
 void NetServer::remoteMsg(const uzel::Msg &msg)
 {
+    // first check if there are
+    // special routing rules for that node
+
+    // auto viaNode = checkRoutingTable(msg.dest().node());
+    // if(viaNode)
+    // {
+    //    viaNode.send(msg);
+    //    return;
+    // }
+
+    // check direct connection
   auto rit = m_remotes.find(msg.dest().node());
   if(rit != m_remotes.end())
   {
     rit->second.send(msg);
+    return;
   }
 }
 
@@ -191,7 +221,7 @@ void NetServer::dispatch(uzel::Msg &msg)
 }
 
 
-void NetServer::addRemote(const std::string &rnode, session::shr_t ss)
+void NetServer::addAuthSessionToRemote(const std::string &rnode, session::shr_t ss)
 {
   auto sit = m_remotes.find(rnode);
   if(sit == m_remotes.end()) { // first connection
@@ -222,6 +252,6 @@ void NetServer::auth(session::shr_t ss)
     m_locals[ss->msg1().from().app()] = ss;
   } else {
     auto rnode = ss->msg1().from().node();
-    addRemote(rnode, ss);
+    addAuthSessionToRemote(rnode, ss);
   }
 }
