@@ -26,6 +26,8 @@ void remote::addSession(session::shr_t ss)
 {
   m_session.emplace(m_session.end(), ss);
   BOOST_LOG_TRIVIAL(debug) << " there are now " << m_session.size() << " session(s) for " << m_node;
+  ss->s_send_error.connect([&]() { on_session_error(ss);});
+  ss->s_receive_error.connect([&]() { on_session_error(ss);});
   if(m_session.size() == 1)
   { // first session
     ss->takeOverMessages(m_outHighQueue);
@@ -35,6 +37,18 @@ void remote::addSession(session::shr_t ss)
 bool remote::connected() const
 {
   return !m_session.empty();
+}
+
+void remote::on_session_error(session::shr_t ss)
+{
+  for(auto ssi = m_session.begin(); ssi != m_session.end(); ++ssi)
+  {
+    if(*ssi == ss)
+    {
+      m_session.erase(ssi);
+      return;
+    }
+  }
 }
 
 
@@ -99,8 +113,8 @@ void NetServer::connectResolved(const sys::error_code ec, const tcp::resolver::r
     unauth->s_connect_error.connect([&](const std::string &hname){ reconnectAfterDelay(hname);});
     unauth->s_auth.connect([&](session::shr_t ss){ auth(ss); });
     unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
-    unauth->s_send_error.connect([&](session::shr_t ss){ });
-    unauth->s_receive_error.connect([&](session::shr_t ss){ });
+    unauth->s_send_error.connect([&](){ on_session_error(unauth);});
+    unauth->s_receive_error.connect([&](){on_session_error(unauth); });
     unauth->startConnection(rezit);
   }
 }
@@ -108,16 +122,7 @@ void NetServer::connectResolved(const sys::error_code ec, const tcp::resolver::r
 
 void NetServer::on_session_error(session::shr_t ss)
 {
-  ss->disconnect();
-  auto rsit = m_remotes.find(ss->node());
-  if(rsit == m_remotes.end())
-  {
-    return;
-  }
-  if(rsit->m_session == ss)
-  {
-
-  }
+    // ss->disconnect();
 }
 
 
@@ -164,8 +169,9 @@ void NetServer::broadcastMsg(uzel::Msg &msg)
 }
 
 
-std::optional<std::string> NetServer::route(const std::string &target)
+std::optional<std::string> NetServer::route(const std::string & /*target*/) const
 {
+    // TODO: implenent routing
   return std::nullopt;
 }
 

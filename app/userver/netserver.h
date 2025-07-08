@@ -17,6 +17,8 @@ public:
   void send(const uzel::Msg &msg);
   [[nodiscard]] bool connected() const;
 private:
+  void on_session_error(session::shr_t ss);
+
   std::string m_node; ///! remote node name
   std::list<session::shr_t> m_session; ///! keeps list of tcp sessions
   std::queue<std::string> m_outHighQueue; ///! high prirority outgoing queue

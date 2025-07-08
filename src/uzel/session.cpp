@@ -60,6 +60,9 @@ void session::takeOverMessages(std::queue<std::string> &oq)
     m_outQueue.emplace(oq.front());
     oq.pop();
   }
+    // assume there is no write in progress when it is called
+    // or use if(wasempty)?
+  do_write();
 }
 
 
@@ -88,6 +91,7 @@ void session::do_read()
           } else {
             BOOST_LOG_TRIVIAL(error) << " error reading from socket: " << ec.message();
             s_receive_error();
+            disconnect();
           }
         }
       });
@@ -106,6 +110,7 @@ void session::do_write()
         if(ec) {
           BOOST_LOG_TRIVIAL(error) << "got error while writing to the socket: " << ec.message();
           s_send_error();
+          disconnect();
        } else {
           BOOST_LOG_TRIVIAL(debug) << DBGOUT << "writing succeed " << m_outQueue.front();
           m_outQueue.pop();
