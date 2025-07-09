@@ -26,7 +26,7 @@ void remote::addSession(session::shr_t ss)
 {
   bool wasEmpty = m_session.empty();
   m_session.push_back(ss);
-  BOOST_LOG_TRIVIAL(debug) << " there are now " << m_session.size() << " session(s) for " << m_node;
+  BOOST_LOG_TRIVIAL(debug) << "there are now " << m_session.size() << " session(s) for " << m_node;
   ss->s_send_error.connect([&]() { on_session_error(ss);});
   ss->s_receive_error.connect([&]() { on_session_error(ss);});
   if(wasEmpty)
@@ -195,7 +195,7 @@ remote &NetServer::findAddRemote(const std::string &node)
   auto remoteIt = m_remotes.find(node);
   if(remoteIt == m_remotes.end())
   {
-    BOOST_LOG_TRIVIAL(info) << "created new remote channel for node" << node;
+    BOOST_LOG_TRIVIAL(info) << "created new remote channel for node " << node;
     remoteIt = m_remotes.insert({node, remote(node)}).first;
   } else {
     BOOST_LOG_TRIVIAL(info) << "found existing remote channel for node " << node;
@@ -219,7 +219,7 @@ void NetServer::remoteMsg(const uzel::Msg &msg)
     return;
   }
 
-  auto remote = findAddRemote(*viaNode);
+  auto &remote = findAddRemote(*viaNode);
   remote.send(msg);
 }
 
@@ -254,7 +254,7 @@ void NetServer::dispatch(uzel::Msg &msg)
 
 void NetServer::addAuthSessionToRemote(const std::string &rnode, session::shr_t ss)
 {
-  auto remote = findAddRemote(rnode);
+  auto &remote = findAddRemote(rnode);
   remote.addSession(ss);
 }
 
