@@ -24,13 +24,20 @@ remote::remote(std::string nodename)
 
 void remote::addSession(session::shr_t ss)
 {
-  m_session.emplace(m_session.end(), ss);
+  bool wasEmpty = m_session.empty();
+  m_session.push_back(ss);
   BOOST_LOG_TRIVIAL(debug) << " there are now " << m_session.size() << " session(s) for " << m_node;
   ss->s_send_error.connect([&]() { on_session_error(ss);});
   ss->s_receive_error.connect([&]() { on_session_error(ss);});
-  if(m_session.size() == 1)
+  if(wasEmpty)
   { // first session
     ss->takeOverMessages(m_outHighQueue);
+  } else {
+    // secondary connection or new connection
+    // * secondary connection will have the same remote UUID
+    // * new connection will have new remote UUID, that could be
+    // ** remote app was restarted
+    // ** remote app is a duplicate
   }
 }
 
@@ -41,11 +48,13 @@ bool remote::connected() const
 
 void remote::on_session_error(session::shr_t ss)
 {
+  BOOST_LOG_TRIVIAL(debug) << "error on session " << ss << ", excluding it from list";
   for(auto ssi = m_session.begin(); ssi != m_session.end(); ++ssi)
   {
     if(*ssi == ss)
     {
       m_session.erase(ssi);
+      BOOST_LOG_TRIVIAL(debug) << "excluded, new list size is " << m_session.size();
       return;
     }
   }
@@ -122,7 +131,7 @@ void NetServer::connectResolved(const sys::error_code ec, const tcp::resolver::r
 
 void NetServer::on_session_error(session::shr_t ss)
 {
-    // ss->disconnect();
+    // ss->disconnect(); // disconnect is called in ession itself
 }
 
 
@@ -181,6 +190,20 @@ std::optional<std::string> NetServer::route(const std::string & target) const
 }
 
 
+remote &NetServer::findAddRemote(const std::string &node)
+{
+  auto remoteIt = m_remotes.find(node);
+  if(remoteIt == m_remotes.end())
+  {
+    BOOST_LOG_TRIVIAL(info) << "created new remote channel for node" << node;
+    remoteIt = m_remotes.insert({node, remote(node)}).first;
+  } else {
+    BOOST_LOG_TRIVIAL(info) << "found existing remote channel for node " << node;
+  }
+  return remoteIt->second;
+}
+
+
 
 void NetServer::remoteMsg(const uzel::Msg &msg)
 {
@@ -196,8 +219,8 @@ void NetServer::remoteMsg(const uzel::Msg &msg)
     return;
   }
 
-  auto remoteIt = m_remotes.find(*viaNode);
-  remoteIt->second.send(msg);
+  auto remote = findAddRemote(*viaNode);
+  remote.send(msg);
 }
 
 
@@ -231,19 +254,8 @@ void NetServer::dispatch(uzel::Msg &msg)
 
 void NetServer::addAuthSessionToRemote(const std::string &rnode, session::shr_t ss)
 {
-  auto sit = m_remotes.find(rnode);
-  if(sit == m_remotes.end()) { // first connection
-    sit = m_remotes.insert({rnode, remote(rnode)}).first;
-    BOOST_LOG_TRIVIAL(info) << "created new remote channel for node" << rnode;
-  } else {
-    BOOST_LOG_TRIVIAL(info) << "found existing remote channel for node " << rnode;
-      // secondary connection or new connection
-      // * secondary connection will have the same remote UUID
-      // * new connection will have new remote UUID, that could be
-      // ** remote app was restarted
-      // ** remote app is a duplicate
-  }
-  sit->second.addSession(ss);
+  auto remote = findAddRemote(rnode);
+  remote.addSession(ss);
 }
 
 void NetServer::auth(session::shr_t ss)

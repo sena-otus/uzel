@@ -49,6 +49,10 @@ private:
   void connectResolved( boost::system::error_code ec,  boost::asio::ip::tcp::resolver::results_type rezit, const std::string &hname);
   void reconnectAfterDelay(const std::string &hname);
   void startResolving(const std::string &hname);
+    /**
+     *  find channel to remote node, if it does not exist, then create a new one
+     *  */
+  remote &findAddRemote(const std::string &node);
   std::optional<std::string> route(const std::string &target) const;
 
     /** add authenticated session to remote channel */
