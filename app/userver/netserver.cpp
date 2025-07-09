@@ -169,10 +169,15 @@ void NetServer::broadcastMsg(uzel::Msg &msg)
 }
 
 
-std::optional<std::string> NetServer::route(const std::string & /*target*/) const
+std::optional<std::string> NetServer::route(const std::string & target) const
 {
     // TODO: implenent routing
-  return std::nullopt;
+    //
+    // return remote node name where we should send the message from that machine for the specified target
+    // in case there are several alternatives, we will have to check which one is up
+
+    // default is the original target - direct connection
+  return target;
 }
 
 
@@ -182,20 +187,17 @@ void NetServer::remoteMsg(const uzel::Msg &msg)
     // first check if there are
     // special routing rules for that node
 
-    // auto viaNode = checkRoutingTable(msg.dest().node());
-    // if(viaNode)
-    // {
-    //    viaNode.send(msg);
-    //    return;
-    // }
+  std::string target = msg.dest().node();
+  auto viaNode = route(target);
 
-    // check direct connection
-  auto rit = m_remotes.find(msg.dest().node());
-  if(rit != m_remotes.end())
+  if(!viaNode)
   {
-    rit->second.send(msg);
+    BOOST_LOG_TRIVIAL(error) << "Can not find route to '" << target << "', message is dropped";
     return;
   }
+
+  auto remoteIt = m_remotes.find(*viaNode);
+  remoteIt->second.send(msg);
 }
 
 
