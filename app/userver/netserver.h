@@ -13,6 +13,12 @@ class remote
 {
 public:
   explicit remote(std::string name);
+
+  remote &operator=(const remote &) = delete;
+  remote(const remote &other) = delete;
+  remote(remote &&) = default;
+  remote &operator=(remote &&) = default;
+
   void addSession(session::shr_t);
   void send(const uzel::Msg &msg);
   [[nodiscard]] bool connected() const;
