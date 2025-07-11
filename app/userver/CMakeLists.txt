@@ -1,6 +1,7 @@
 add_executable(userver
   main.cpp
   netserver.cpp
+  remote.cpp
 )
 
 target_link_libraries(userver PRIVATE uzel Boost::boost Boost::system)
