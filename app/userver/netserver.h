@@ -45,7 +45,7 @@ private:
 
   boost::asio::ip::tcp::acceptor m_acceptor;
   std::map<std::string, session::shr_t> m_locals;
-  std::map<std::string, remote> m_remotes;
+  std::map<std::string, remote> m_node; //<! map nodes to channels
 
   aresolver m_aresolver;
   boost::asio::io_context& m_iocontext;

@@ -3,6 +3,7 @@
 #include <boost/log/trivial.hpp>
 
 
+
 remote::remote(std::string nodename)
   : m_node(std::move(nodename))
 {
@@ -16,8 +17,39 @@ void remote::addSession(session::shr_t ss)
   BOOST_LOG_TRIVIAL(debug) << "there are now " << m_session.size() << " session(s) for " << m_node;
   ss->s_send_error.connect([&]() { on_session_error(ss);});
   ss->s_receive_error.connect([&]() { on_session_error(ss);});
-  if(wasEmpty)
-  { // first session
+  int priority = 100;
+    // who is the boss?
+  if(ss->msg1().from().node() > uzel::UConfigS::getUConfig().nodeName()) {
+      // he is the boss
+    priority = ss->msg1().priority();
+  } else {
+      // we decide
+    priority = ss->priority();
+  }
+
+  if(priority > 0) {
+      // high priority
+    if(m_sessionH) {
+        // we have already high prio session
+        // just close the new one silently
+      ss->disconnect();
+    } else {
+      m_sessionH = ss;
+    }
+  } else {
+      // low priority
+    if(m_sessionL) {
+        // we have already low prio session
+        // just close the now one silently
+      ss->disconnect();
+    } else {
+      m_sessionL = ss;
+    }
+  }
+  } else {
+      // i am the boss
+  }
+
     ss->takeOverMessages(m_outHighQueue);
   } else {
     // secondary connection or new connection

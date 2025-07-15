@@ -33,6 +33,16 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
 }
 
 
+void storeAddressAndStartConnecting(const std::string &hname) {
+  if(m_connecting_to.find(hname) != m_connecting_to.end()) {
+      // already connecting
+    return;
+  }
+  m_connecting_to.emplace(hname);
+  startResolving(hname);
+}
+
+
 void NetServer::reconnectAfterDelay(const std::string &hname)
 {
   auto timer = std::make_shared<io::steady_timer>(m_iocontext, io::chrono::seconds(delay_reconnect_s));
@@ -114,7 +124,7 @@ void NetServer::localbroadcastMsg(uzel::Msg & msg)
 
 void NetServer::broadcastMsg(uzel::Msg &msg)
 {
-  std::ranges::for_each(m_remotes,
+  std::ranges::for_each(m_node,
            [&msg](auto &sp) { sp.second.send(msg); });
 }
 
@@ -133,11 +143,11 @@ std::optional<std::string> NetServer::route(const std::string & target) const
 
 remote &NetServer::findAddRemote(const std::string &node)
 {
-  auto remoteIt = m_remotes.find(node);
-  if(remoteIt == m_remotes.end())
+  auto remoteIt = m_node.find(node);
+  if(remoteIt == m_node.end())
   {
     BOOST_LOG_TRIVIAL(info) << "created new remote channel for node " << node;
-    remoteIt = m_remotes.insert({node, remote(node)}).first;
+    remoteIt = m_node.insert({node, remote(node)}).first;
   } else {
     BOOST_LOG_TRIVIAL(info) << "found existing remote channel for node " << node;
   }
@@ -196,10 +206,10 @@ void NetServer::dispatch(uzel::Msg &msg)
 void NetServer::addAuthSessionToRemote(const std::string &rnode, session::shr_t ss)
 {
   auto &remote = findAddRemote(rnode);
-  remote.addSession(ss);
+  remote.addSession(ss); // NOLINT(performance-unnecessary-value-param)
 }
 
-void NetServer::auth(session::shr_t ss)
+void NetServer::auth(session::shr_t ss) // NOLINT(performance-unnecessary-value-param)
 {
   if(ss->msg1().fromLocal()) {
     BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "new local connection, store local session with name " << ss->msg1().from().app();
