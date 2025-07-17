@@ -23,7 +23,7 @@ public:
   using shr_t = std::shared_ptr<session>;
   using asiotcp = boost::asio::ip::tcp;
 
-  explicit session(asiotcp::socket socket);
+  explicit session(asiotcp::socket socket, int priority);
   ~session();
 
   session(const session &other) = delete;
@@ -54,6 +54,7 @@ private:
   void do_write();
 
   boost::asio::ip::tcp::socket m_socket;
+  int m_priority{0};
   enum { max_length = 1024*1024 };
   std::array<char, max_length> m_data;
   uzel::InputProcessor m_processor;

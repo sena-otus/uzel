@@ -8,8 +8,8 @@
 
 using boost::asio::ip::tcp;
 
-session::session(tcp::socket socket)
-  : m_socket(std::move(socket)), m_data{0}, m_msg1(uzel::Msg::ptree{}, "")
+session::session(tcp::socket socket, int priority)
+  : m_socket(std::move(socket)), m_priority{priority}, m_data{0}, m_msg1(uzel::Msg::ptree{}, "")
 {
   m_rejected_c   = m_processor.s_rejected.connect([&](){ disconnect();});
   m_authorized_c = m_processor.s_auth    .connect([&](const uzel::Msg &msg){ m_msg1 = msg; s_auth(shared_from_this()); });
@@ -29,6 +29,7 @@ void session::start()
 {
   uzel::Msg::ptree body{};
   body.add("auth.pid", getpid());
+  body.add("priority", m_priority);
 
   putOutQueue(uzel::Msg(uzel::Addr(), std::move(body)));
   do_read();

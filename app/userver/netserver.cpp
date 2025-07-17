@@ -69,13 +69,24 @@ void NetServer::connectResolved(const sys::error_code ec, const tcp::resolver::r
   } else {
     BOOST_LOG_TRIVIAL(info) << "resolved "  << rezit->host_name() << "->" << rezit->endpoint() << ", connecting...";
     tcp::socket sock{m_iocontext};
-    auto unauth = std::make_shared<session>(std::move(sock));
-    unauth->s_connect_error.connect([&](const std::string &hname){ reconnectAfterDelay(hname);});
-    unauth->s_auth.connect([&](session::shr_t ss){ auth(ss); });
-    unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
-    unauth->s_send_error.connect([&](){ on_session_error(unauth);});
-    unauth->s_receive_error.connect([&](){on_session_error(unauth); });
-    unauth->startConnection(rezit);
+    {
+      auto unauthHi = std::make_shared<session>(std::move(sock), 10);
+      unauthHi->s_connect_error.connect([&](const std::string &hname){ reconnectAfterDelay(hname);});
+      unauthHi->s_auth.connect([&](session::shr_t ss){ auth(ss); });
+      unauthHi->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
+      unauthHi->s_send_error.connect([&](){ on_session_error(unauthHi);});
+      unauthHi->s_receive_error.connect([&](){on_session_error(unauthHi); });
+      unauthHi->startConnection(rezit);
+    }
+    {
+      auto unauthLo = std::make_shared<session>(std::move(sock), 0);
+      unauthLo->s_connect_error.connect([&](const std::string &hname){ reconnectAfterDelay(hname);});
+      unauthLo->s_auth.connect([&](session::shr_t ss){ auth(ss); });
+      unauthLo->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
+      unauthLo->s_send_error.connect([&](){ on_session_error(unauthLo);});
+      unauthLo->s_receive_error.connect([&](){on_session_error(unauthLo); });
+      unauthLo->startConnection(rezit);
+    }
   }
 }
 
