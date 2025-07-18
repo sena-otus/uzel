@@ -1,7 +1,10 @@
 #include "remote.h"
+#include "uzel/session.h"
 
 #include <boost/log/trivial.hpp>
 
+namespace uzel
+{
 
 
 remote::remote(std::string nodename)
@@ -17,21 +20,47 @@ void remote::addSession(session::shr_t ss)
   BOOST_LOG_TRIVIAL(debug) << "there are now " << m_session.size() << " session(s) for " << m_node;
   ss->s_send_error.connect([&]() { on_session_error(ss);});
   ss->s_receive_error.connect([&]() { on_session_error(ss);});
-  int priority = 100;
     // who is the boss?
   if(ss->msg1().from().node() > uzel::UConfigS::getUConfig().nodeName()) {
-      // he is the boss
-    priority = ss->msg1().priority();
+      // he wins
+      // so wait for his message
+
+      //    auto iprio = ss->msg1().pbody().get<int8_t>("priority");
+      //    ss->setPriority(uzel::Priority::_from_integral(iprio));
   } else {
-      // we decide
-    priority = ss->priority();
+      // i win, so i decide on priorities and on fate of the session
+    if(!m_sessionH)
+    {
+      ss->setPriority(uzel::Priority::high);
+      m_sessionH = ss;
+        // it is not necessary both sides to have same priority on the channel
+        // but we can tell that other side
+      uzel::Msg::ptree body{};
+      body.add("priority", uzel::Priority::high);
+      ss->putOutQueue(uzel::Msg(uzel::Addr(), std::move(body)));
+    } else if(!m_sessionL) {
+      ss->setPriority(uzel::Priority::low);
+      m_sessionL = ss;
+      uzel::Msg::ptree body{};
+      body.add("priority", uzel::Priority::low);
+      ss->putOutQueue(uzel::Msg(uzel::Addr(), std::move(body)));
+    } else {
+        // duplicate connection, close it
+      uzel::Msg::ptree body{};
+      body.add("refuse", "duplicate");
+      ss->putOutQueue(uzel::Msg(uzel::Addr(), std::move(body)));
+      ss->disconnect();
+    }
   }
 
-  if(priority > 0) {
+
+  }
+  if(ss->priority() == +Priority::high) {
       // high priority
     if(m_sessionH) {
         // we have already high prio session
         // just close the new one silently
+        // but send duplicate message first?
       ss->disconnect();
     } else {
       m_sessionH = ss;
@@ -91,4 +120,6 @@ void remote::send(const uzel::Msg &msg)
       // the very last session is the highest priority!
     m_session.back()->putOutQueue(msg);
   }
+}
+
 }

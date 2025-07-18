@@ -1,6 +1,7 @@
 #include "netserver.h"
 #include "uzel/msg.h"
 #include <boost/log/trivial.hpp>
+#include <functional>
 #include <uzel/session.h>
 #include <uzel/uconfig.h>
 #include <uzel/dbg.h>
@@ -70,28 +71,19 @@ void NetServer::connectResolved(const sys::error_code ec, const tcp::resolver::r
     BOOST_LOG_TRIVIAL(info) << "resolved "  << rezit->host_name() << "->" << rezit->endpoint() << ", connecting...";
     tcp::socket sock{m_iocontext};
     {
-      auto unauthHi = std::make_shared<session>(std::move(sock), 10);
-      unauthHi->s_connect_error.connect([&](const std::string &hname){ reconnectAfterDelay(hname);});
-      unauthHi->s_auth.connect([&](session::shr_t ss){ auth(ss); });
-      unauthHi->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
-      unauthHi->s_send_error.connect([&](){ on_session_error(unauthHi);});
-      unauthHi->s_receive_error.connect([&](){on_session_error(unauthHi); });
-      unauthHi->startConnection(rezit);
-    }
-    {
-      auto unauthLo = std::make_shared<session>(std::move(sock), 0);
-      unauthLo->s_connect_error.connect([&](const std::string &hname){ reconnectAfterDelay(hname);});
-      unauthLo->s_auth.connect([&](session::shr_t ss){ auth(ss); });
-      unauthLo->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
-      unauthLo->s_send_error.connect([&](){ on_session_error(unauthLo);});
-      unauthLo->s_receive_error.connect([&](){on_session_error(unauthLo); });
-      unauthLo->startConnection(rezit);
+      auto unauth = std::make_shared<uzel::session>(std::move(sock), uzel::Direction::outgoing);
+      unauth->s_connect_error.connect([&](const std::string &hname){ reconnectAfterDelay(hname);});
+      unauth->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
+      unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
+      unauth->s_send_error.connect([&](){ on_session_error(unauth);});
+      unauth->s_receive_error.connect([&](){on_session_error(unauth); });
+      unauth->startConnection(rezit);
     }
   }
 }
 
 
-void NetServer::on_session_error(session::shr_t ss)
+void NetServer::on_session_error(uzel::session::shr_t ss)
 {
     // ss->disconnect(); // disconnect is called in ession itself
 }
@@ -103,8 +95,8 @@ void NetServer::do_accept()
     [this](sys::error_code ec, tcp::socket socket)
       {
         if (!ec) {
-          auto unauth = std::make_shared<session>(std::move(socket));
-          unauth->s_auth.connect([&](session::shr_t ss){ auth(ss); });
+          auto unauth = std::make_shared<uzel::session>(std::move(socket), uzel::Direction::incoming);
+          unauth->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
           unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
           unauth->start();
         }
@@ -152,13 +144,13 @@ std::optional<std::string> NetServer::route(const std::string & target) const
 }
 
 
-remote &NetServer::findAddRemote(const std::string &node)
+uzel::remote &NetServer::findAddRemote(const std::string &node)
 {
   auto remoteIt = m_node.find(node);
   if(remoteIt == m_node.end())
   {
     BOOST_LOG_TRIVIAL(info) << "created new remote channel for node " << node;
-    remoteIt = m_node.insert({node, remote(node)}).first;
+    remoteIt = m_node.insert({node, uzel::remote(node)}).first;
   } else {
     BOOST_LOG_TRIVIAL(info) << "found existing remote channel for node " << node;
   }
@@ -214,13 +206,13 @@ void NetServer::dispatch(uzel::Msg &msg)
 }
 
 
-void NetServer::addAuthSessionToRemote(const std::string &rnode, session::shr_t ss)
+void NetServer::addAuthSessionToRemote(const std::string &rnode, uzel::session::shr_t ss)
 {
   auto &remote = findAddRemote(rnode);
   remote.addSession(ss); // NOLINT(performance-unnecessary-value-param)
 }
 
-void NetServer::auth(session::shr_t ss) // NOLINT(performance-unnecessary-value-param)
+void NetServer::auth(uzel::session::shr_t ss) // NOLINT(performance-unnecessary-value-param)
 {
   if(ss->msg1().fromLocal()) {
     BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "new local connection, store local session with name " << ss->msg1().from().app();

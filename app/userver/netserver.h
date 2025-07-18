@@ -7,7 +7,10 @@
 #include <boost/asio.hpp>
 #include <map>
 
-class session;
+namespace uzel
+{
+  class session;
+}
 
 
 /** @brief tcp server */
@@ -21,7 +24,7 @@ public:
   NetServer(boost::asio::io_context& io_context, unsigned short port);
 
 
-  void auth(session::shr_t ss);
+  void auth(uzel::session::shr_t ss);
   void dispatch(uzel::Msg &msg);
 private:
   void do_accept();
@@ -36,16 +39,16 @@ private:
     /**
      *  find channel to remote node, if it does not exist, then create a new one
      *  */
-  remote &findAddRemote(const std::string &node);
+  uzel::remote &findAddRemote(const std::string &node);
   std::optional<std::string> route(const std::string &target) const;
 
     /** add authenticated session to remote channel */
-  void addAuthSessionToRemote(const std::string &rnode, session::shr_t ss);
-  void on_session_error(session::shr_t ss);
+  void addAuthSessionToRemote(const std::string &rnode, uzel::session::shr_t ss);
+  void on_session_error(uzel::session::shr_t ss);
 
   boost::asio::ip::tcp::acceptor m_acceptor;
-  std::map<std::string, session::shr_t> m_locals;
-  std::map<std::string, remote> m_node; //<! map nodes to channels
+  std::map<std::string, uzel::session::shr_t> m_locals;
+  std::map<std::string, uzel::remote> m_node; //<! map nodes to channels
 
   aresolver m_aresolver;
   boost::asio::io_context& m_iocontext;

@@ -4,6 +4,10 @@
 
 #pragma once
 
+namespace uzel
+{
+
+
 /** incapsulates logical channel to one remote */
 class remote
 {
@@ -34,3 +38,5 @@ private:
   std::queue<std::string> m_outHighQueue; ///! high prirority outgoing queue
   std::queue<std::string> m_outLowQueue; ///! low priority outgoing queue
 };
+
+}

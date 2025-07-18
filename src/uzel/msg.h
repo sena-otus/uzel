@@ -48,7 +48,8 @@ namespace uzel
     [[nodiscard]] Addr from() const;
     [[nodiscard]] Addr dest() const;
     [[nodiscard]] const ptree& header() const;
-      // const ptree& body() const;
+      /** that will parse the body if needed, may throw */
+    [[nodiscard]] const ptree& pbody() const;
   private:
     void setDest(const Addr &dest);
     void updateDest();
@@ -56,7 +57,7 @@ namespace uzel
     void setFromLocal();
 
     ptree m_header; //!< message header
-    std::variant<std::string,boost::property_tree::ptree> m_body; //!< unpared/parsed message body
+    mutable std::variant<std::string,boost::property_tree::ptree> m_body; //!< unpared/parsed message body
     DestType m_destType;
       // cached values:
     Addr m_dest;

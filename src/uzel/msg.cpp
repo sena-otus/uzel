@@ -7,6 +7,7 @@
 #include <sstream>
 #include <string_view>
 #include <utility>
+#include <variant>
 
 
 
@@ -55,7 +56,6 @@ namespace uzel {
     }
     updateDest();
   }
-
 
   void Msg::setFromLocal()
   {
@@ -174,4 +174,20 @@ namespace uzel {
     return m_destType == DestType::localbroadcast;
   }
 
+  const Msg::ptree& Msg::pbody() const
+  {
+    if(std::holds_alternative<Msg::ptree>(m_body))
+    {
+      return std::get<Msg::ptree>(m_body);
+    }
+    if(std::holds_alternative<std::string>(m_body)) {
+      auto bodystr(std::move(std::get<std::string>(m_body)));
+      m_body = Msg::ptree();
+      std::istringstream is(bodystr);
+      auto& pbody = std::get<Msg::ptree>(m_body);
+      boost::property_tree::read_json(is, pbody);
+      return pbody;
+    }
+    throw std::runtime_error("unsupported message body format");
+  }
 }
