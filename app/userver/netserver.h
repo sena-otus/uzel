@@ -2,6 +2,9 @@
 
 #include "remote.h"
 
+#include <cstdint>
+#include <stdexcept>
+#include <unordered_map>
 #include <uzel/aresolver.h>
 #include <uzel/session.h>
 #include <boost/asio.hpp>
@@ -14,6 +17,65 @@ namespace uzel
 {
   class session;
 }
+
+
+
+
+
+BETTER_ENUM(HostStatus, int8_t, initial, resolving, resolving_error, connecting, connection_error, authenticated); //NOLINT
+
+class RemoteHostToConnect
+{
+public:
+
+  explicit RemoteHostToConnect(std::string hostname)
+    : m_hostname{std::move(hostname)}, m_statusChangeTS{std::chrono::steady_clock::now()}
+  {
+  }
+
+  void setStatus(HostStatus hs) {
+    m_status = hs;
+    m_statusChangeTS = std::chrono::steady_clock::now();
+  }
+
+  [[nodiscard]] HostStatus status() const {return m_status; }
+  [[nodiscard]] std::chrono::steady_clock::time_point statusChangeTS() const {return m_statusChangeTS; }
+
+
+
+private:
+  std::string m_hostname;
+  boost::asio::ip::address m_addr;
+  HostStatus m_status{HostStatus::initial};
+  std::chrono::steady_clock::time_point m_statusChangeTS;
+};
+
+
+class ConnectionManager
+{
+public:
+  using UMap = std::unordered_map<std::string, RemoteHostToConnect>;
+
+  template<class ...Args>
+  std::pair<UMap::iterator, bool> emplace(Args&&... args)
+  {
+    return m_connectTo.emplace(std::forward(args)...);
+  }
+
+  void setStatus(const std::string &hname, HostStatus hs)
+  {
+    auto hit = m_connectTo.find(hname);
+    if(hit == m_connectTo.end()) {
+      throw std::runtime_error("unknown host " + hname);
+    }
+    hit->second.setStatus(hs);
+  }
+
+  UMap &connectMap() { return m_connectTo;}
+
+private:
+  UMap m_connectTo; ///!< map remote hostnames to be connected to their status
+};
 
 
 struct AddressHash {
@@ -52,6 +114,7 @@ private:
   void reconnectAfterDelay(const std::string &hname);
   void startResolving(const std::string &hname);
   void startConnecting(const std::string &hname);
+  void startConnecting(std::shared_ptr<boost::asio::steady_timer> timer);
     /**
      *  find channel to remote node, if it does not exist, then create a new one
      *  */
@@ -62,15 +125,20 @@ private:
   void addAuthSessionToRemote(const std::string &rnode, uzel::session::shr_t ss);
   void onSessionClosed(uzel::session::shr_t ss);
 
+  const int MaxConnectionsWithAddr = 10;
+  const int RefreshHostStatus_sec = 15;
+  const int DelayReconnect_sec = 30;
+  const unsigned ResolverThreads = 5;
+
+
   boost::asio::ip::tcp::acceptor m_acceptor;
   std::map<std::string, uzel::session::shr_t> m_locals;
-  std::map<std::string, uzel::remote> m_node; //<! map nodes to channels
-  std::set<std::string> m_connecting_to;
+  std::unordered_map<std::string, uzel::remote> m_node; ///<! map nodes to channels
+  ConnectionManager m_conman;
 
   std::unordered_map<boost::asio::ip::address,
                      std::unordered_set<uzel::session::shr_t>,
                      AddressHash, AddressEqual> m_connectionsPerAddr;
   aresolver m_aresolver;
   boost::asio::io_context& m_iocontext;
-  const int MaxConnectionsWithAddr = 10;
 };

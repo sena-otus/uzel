@@ -13,13 +13,11 @@ using std::for_each;
 namespace io = boost::asio;
 namespace sys = boost::system;
 
-const int delay_reconnect_s = 10;
-const int resolver_threads = 5;
 
 
 
 NetServer::NetServer(io::io_context& io_context, unsigned short port)
-  : m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),  m_aresolver{resolver_threads, io_context}, m_iocontext(io_context)
+  : m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),  m_aresolver{ResolverThreads, io_context}, m_iocontext(io_context)
 {
     // that throws exception!
     // TODO:  check how to properly set an option
@@ -30,25 +28,52 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
   {
     startConnecting(rhost);
   }
-}
 
+  auto timer = std::make_shared<io::steady_timer>(m_iocontext, io::chrono::seconds(RefreshHostStatus_sec));
+  startConnecting(timer);
+}
 
 void NetServer::startConnecting(const std::string &hname) {
   if(uzel::UConfigS::getUConfig().isLocalNode(hname)) {
     return;
   }
-  if(m_connecting_to.find(hname) != m_connecting_to.end()) {
-      // already connecting
-    return;
-  }
-  m_connecting_to.emplace(hname);
-  startResolving(hname);
+  m_conman.emplace(hname, RemoteHostToConnect(hname));
 }
+
+
+void NetServer::startConnecting(std::shared_ptr<io::steady_timer> timer) {
+  timer->expires_after(boost::asio::chrono::seconds(RefreshHostStatus_sec));
+  timer->async_wait([&,timer](const sys::error_code&  /*ec*/){
+    startConnecting(timer);
+  });
+
+  for(auto && hit : m_conman.connectMap()) {
+    switch(hit.second.status())
+    {
+      case +HostStatus::initial:
+      {
+        hit.second.setStatus(HostStatus::resolving);
+        startResolving(hit.first);
+      }
+      break;
+      case +HostStatus::resolving_error:
+      {
+        auto now = std::chrono::steady_clock::now();
+        if(std::chrono::duration_cast<std::chrono::seconds>(now - hit.second.statusChangeTS()).count() > DelayReconnect_sec) {
+          hit.second.setStatus(HostStatus::resolving);
+          startResolving(hit.first);
+        }
+      }
+      break;
+    }
+  }
+}
+
 
 
 void NetServer::reconnectAfterDelay(const std::string &hname)
 {
-  auto timer = std::make_shared<io::steady_timer>(m_iocontext, io::chrono::seconds(delay_reconnect_s));
+  auto timer = std::make_shared<io::steady_timer>(m_iocontext, io::chrono::seconds(DelayReconnect_sec));
   timer->async_wait([&,timer, hname](const sys::error_code&  /*ec*/){ startResolving(hname);});
 }
 
@@ -68,10 +93,12 @@ void NetServer::connectResolved(const sys::error_code ec, const tcp::resolver::r
 {
   if(ec) {
     BOOST_LOG_TRIVIAL(error) << "error resolving '" << hname << "': "<<  ec.message();
-    reconnectAfterDelay(hname);
+    m_conman.setStatus(hname, HostStatus::resolving_error);
   } else {
     BOOST_LOG_TRIVIAL(info) << "resolved "  << rezit->host_name() << "->" << rezit->endpoint() << ", connecting...";
     {
+      m_conman.setAddr(hname, rezit->endpoint().address());
+      m_conman.setStatus(hname, HostStatus::connecting);
       tcp::socket sock{m_iocontext};
       auto unauth = std::make_shared<uzel::session>(std::move(sock), uzel::Direction::outgoing, rezit->endpoint().address(), hname);
       m_connectionsPerAddr[rezit->endpoint().address()].insert(unauth);
