@@ -15,15 +15,16 @@ remote::remote(std::string nodename)
 
 void remote::addSession(session::shr_t ss)
 {
-  bool wasEmpty = m_session.empty();
-  m_session.push_back(ss);
-  BOOST_LOG_TRIVIAL(debug) << "there are now " << m_session.size() << " session(s) for " << m_node;
   ss->s_send_error.connect([&]() { on_session_error(ss);});
-  ss->s_receive_error.connect([&]() { on_session_error(ss);});
+  ss->s_recv_error.connect([&]() { on_session_error(ss);});
     // who is the boss?
   if(ss->msg1().from().node() > uzel::UConfigS::getUConfig().nodeName()) {
       // he wins
-      // so wait for his message
+      // so wait for his decision (remote message), it will tell which
+      // priority or close it
+    m_sessionWaitForRemote.emplace(ss);
+    BOOST_LOG_TRIVIAL(debug) << "there are now " << m_sessionWaitForRemote.size()
+                             << " session(s) for " << m_node << "waiting for decision";
 
       //    auto iprio = ss->msg1().pbody().get<int8_t>("priority");
       //    ss->setPriority(uzel::Priority::_from_integral(iprio));
@@ -31,67 +32,36 @@ void remote::addSession(session::shr_t ss)
       // i win, so i decide on priorities and on fate of the session
     if(!m_sessionH)
     {
-      ss->setPriority(uzel::Priority::high);
+      BOOST_LOG_TRIVIAL(debug) << "got high priority connection with '" << m_node
+                               << "' = " << ss;
       m_sessionH = ss;
+      ss->setPriority(uzel::Priority::high);
         // it is not necessary both sides to have same priority on the channel
-        // but we can tell that other side
+        // but let's do it
       uzel::Msg::ptree body{};
       body.add("priority", uzel::Priority::high);
       ss->putOutQueue(uzel::Msg(uzel::Addr(), std::move(body)));
+      ss->takeOverMessages(m_outHighQueue);
     } else if(!m_sessionL) {
+      BOOST_LOG_TRIVIAL(debug) << "got low priority connection with '" << m_node
+                               << "' = " << ss;
       ss->setPriority(uzel::Priority::low);
       m_sessionL = ss;
       uzel::Msg::ptree body{};
       body.add("priority", uzel::Priority::low);
       ss->putOutQueue(uzel::Msg(uzel::Addr(), std::move(body)));
+      ss->takeOverMessages(m_outLowQueue);
     } else {
-        // duplicate connection, close it
-      uzel::Msg::ptree body{};
-      body.add("refuse", "duplicate");
-      ss->putOutQueue(uzel::Msg(uzel::Addr(), std::move(body)));
-      ss->disconnect();
+      BOOST_LOG_TRIVIAL(debug) << "got duplicated connection with '" << m_node
+                               << "' = " << ss << ", will be closed";
+      ss->gracefullClose("duplicated connection");
     }
-  }
-
-
-  }
-  if(ss->priority() == +Priority::high) {
-      // high priority
-    if(m_sessionH) {
-        // we have already high prio session
-        // just close the new one silently
-        // but send duplicate message first?
-      ss->disconnect();
-    } else {
-      m_sessionH = ss;
-    }
-  } else {
-      // low priority
-    if(m_sessionL) {
-        // we have already low prio session
-        // just close the now one silently
-      ss->disconnect();
-    } else {
-      m_sessionL = ss;
-    }
-  }
-  } else {
-      // i am the boss
-  }
-
-    ss->takeOverMessages(m_outHighQueue);
-  } else {
-    // secondary connection or new connection
-    // * secondary connection will have the same remote UUID
-    // * new connection will have new remote UUID, that could be
-    // ** remote app was restarted
-    // ** remote app is a duplicate
   }
 }
 
 bool remote::connected() const
 {
-  return !m_session.empty();
+  return m_sessionH && m_sessionL;
 }
 
 void remote::on_session_error(session::shr_t ss)

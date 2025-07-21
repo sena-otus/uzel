@@ -32,11 +32,11 @@ private:
   std::string m_node; ///! remote node name - known only after authentication
   std::string m_hname; ///! remote hostname (if known) that was used to connect to
   std::string m_addr; ///! last known remote address
-  std::list<session::shr_t> m_session; ///! keeps list of tcp sessions
+  std::set<session::shr_t> m_sessionWaitForRemote; ///! keeps list of tcp sessions
   session::shr_t m_sessionH;
   session::shr_t m_sessionL;
-  std::queue<std::string> m_outHighQueue; ///! high prirority outgoing queue
-  std::queue<std::string> m_outLowQueue; ///! low priority outgoing queue
+  MsgQueue m_outHighQueue; ///! high prirority outgoing queue
+  MsgQueue m_outLowQueue; ///! low priority outgoing queue
 };
 
 }

@@ -98,6 +98,20 @@ namespace uzel {
     return oss.str();
   }
 
+  std::vector<char> Msg::charvec() const
+  {
+      // FIXME: that is inefficient, store directly to std::vector!
+    std::string tmpstr = str();
+    return {tmpstr.begin(), tmpstr.end()};
+  }
+
+  std::vector<char> Msg::moveToCharvec()
+  {
+      // FIXME: that is inefficient, store directly to std::vector!
+    std::string str = move_tostr();
+    return {str.begin(), str.end()};
+  }
+
 
 
   const Msg::ptree& Msg::header() const

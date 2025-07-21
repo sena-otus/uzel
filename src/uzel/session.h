@@ -10,6 +10,7 @@
 #include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/asio.hpp>
+#include <deque>
 #include <memory>
 #include <array>
 #include <queue>
@@ -19,6 +20,30 @@ namespace uzel
   BETTER_ENUM(Priority, int8_t, undefined=-127, low = 0, high = 10); //NOLINT
   BETTER_ENUM(Direction, int8_t, incoming = 0, outgoing); //NOLINT
 
+  inline const int64_t MessageTTL_sec = 60;
+
+  struct QueuedMsg
+  {
+    explicit QueuedMsg(Msg &&msg)
+      : m_dt(msg.destType()), m_enqueueTime(std::chrono::steady_clock::now())
+    {
+      m_msg = msg.moveToCharvec();
+    }
+    // explicit QueuedMsg(Msg &&msg, std::chrono::steady_clock::time_point enqueueTime)
+    //   : m_msg(std::move(msg)), m_dt(msg.destType()), m_enqueueTime(enqueueTime)
+    // {}
+
+    [[nodiscard]] Msg::DestType destType() const { return m_dt; }
+    [[nodiscard]] std::chrono::steady_clock::time_point enqueueTime() const { return m_enqueueTime;}
+    [[nodiscard]] const std::vector<char>& msg() const  { return m_msg; }
+
+
+    std::vector<char> m_msg;
+    Msg::DestType m_dt;
+    std::chrono::steady_clock::time_point m_enqueueTime;
+  };
+
+  using MsgQueue = std::deque<QueuedMsg>;
 
 
 /**
@@ -34,7 +59,7 @@ public:
   using asiotcp = boost::asio::ip::tcp;
 
 
-  explicit session(asiotcp::socket socket, Direction direction);
+  explicit session(asiotcp::socket socket, Direction direction, boost::asio::ip::address ip, std::string remoteHostName = "");
   ~session();
 
   session(const session &other) = delete;
@@ -42,7 +67,8 @@ public:
   session& operator=(session &&other) = delete;
   session& operator=(const session &other) = delete;
 
-  void disconnect();
+    /** notify peer and shut down */
+  void gracefullClose(const std::string &reason);
   void startConnection(const asiotcp::resolver::results_type &remote);
   void connectHandler(const boost::system::error_code &ec, const asiotcp::resolver::results_type &remote);
 
@@ -51,12 +77,14 @@ public:
   boost::signals2::signal<void (uzel::Msg &msg)> s_dispatch;
   boost::signals2::signal<void (const std::string &hostname)> s_connect_error;
   boost::signals2::signal<void ()> s_send_error;
-  boost::signals2::signal<void ()> s_receive_error;
+  boost::signals2::signal<void ()> s_recv_error;
+  boost::signals2::signal<void (session::shr_t ss)> s_closed;
     // NOLINTEND(misc-non-private-member-variables-in-classes,cppcoreguidelines-non-private-member-variables-in-classes)
 
   Priority priority() const { return m_priority;}
   void setPriority(Priority p) { m_priority = p;}
 
+  [[nodiscard]] bool outQueueEmpty();
 
   const uzel::Msg& msg1() const {return m_msg1;}
   void start();
@@ -64,10 +92,19 @@ public:
   void putOutQueue(uzel::Msg&& msg);
     // take over processing of the messages from another (old) session
   void takeOverMessages(session &os);
-  void takeOverMessages(std::queue<std::string> &oq);
+  void takeOverMessages(MsgQueue &oq);
+  void setRemoteIp(const boost::asio::ip::address &ip) {m_remoteIp = ip;}
+  const boost::asio::ip::address& remoteIp() const{ return m_remoteIp;}
+  void setRemoteHostName(const std::string &hname) {m_remoteHostName = hname;}
+  const std::string& remoteHostName() const{ return m_remoteHostName;}
+
+  [[nodiscard]] Direction direction() const {return m_direction;}
+
 private:
   void do_read();
   void do_write();
+  void sendByeAndClose();
+  void stop();
 
   boost::asio::ip::tcp::socket m_socket;
   Priority m_priority{Priority::undefined};
@@ -75,11 +112,18 @@ private:
   enum { max_length = 1024*1024 };
   std::array<char, max_length> m_data;
   uzel::InputProcessor m_processor;
-  std::queue<std::string> m_outQueue;
+  MsgQueue m_outQueue;
   uzel::Msg m_msg1; // the very first message (used for auth)
+  bool m_closeFlag{false};
+  bool m_stopped{false};
+  std::string m_reason{};
+  std::string m_remoteHostName{}; // only if Direction::outgoing
+  boost::asio::ip::address m_remoteIp{};
   boost::signals2::connection m_rejected_c;
   boost::signals2::connection m_authorized_c;
   boost::signals2::connection m_dispatch_c;
+//  boost::signals2::connection m_send_error_c;
+//  boost::signals2::connection m_recv_error_c;
 };
 
 

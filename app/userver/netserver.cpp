@@ -28,13 +28,15 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
   auto to_connect_to = uzel::UConfigS::getUConfig().remotes();
   for(auto && rhost : to_connect_to)
   {
-    if(uzel::UConfigS::getUConfig().isLocalNode(rhost)) continue;
-    startResolving(rhost);
+    startConnecting(rhost);
   }
 }
 
 
-void storeAddressAndStartConnecting(const std::string &hname) {
+void NetServer::startConnecting(const std::string &hname) {
+  if(uzel::UConfigS::getUConfig().isLocalNode(hname)) {
+    return;
+  }
   if(m_connecting_to.find(hname) != m_connecting_to.end()) {
       // already connecting
     return;
@@ -69,24 +71,19 @@ void NetServer::connectResolved(const sys::error_code ec, const tcp::resolver::r
     reconnectAfterDelay(hname);
   } else {
     BOOST_LOG_TRIVIAL(info) << "resolved "  << rezit->host_name() << "->" << rezit->endpoint() << ", connecting...";
-    tcp::socket sock{m_iocontext};
     {
-      auto unauth = std::make_shared<uzel::session>(std::move(sock), uzel::Direction::outgoing);
+      tcp::socket sock{m_iocontext};
+      auto unauth = std::make_shared<uzel::session>(std::move(sock), uzel::Direction::outgoing, rezit->endpoint().address(), hname);
+      m_connectionsPerAddr[rezit->endpoint().address()].insert(unauth);
+      unauth->s_closed.connect([&](uzel::session::shr_t ss){ onSessionClosed(ss);});
       unauth->s_connect_error.connect([&](const std::string &hname){ reconnectAfterDelay(hname);});
       unauth->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
       unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
-      unauth->s_send_error.connect([&](){ on_session_error(unauth);});
-      unauth->s_receive_error.connect([&](){on_session_error(unauth); });
       unauth->startConnection(rezit);
     }
   }
 }
 
-
-void NetServer::on_session_error(uzel::session::shr_t ss)
-{
-    // ss->disconnect(); // disconnect is called in ession itself
-}
 
 
 void NetServer::do_accept()
@@ -95,16 +92,34 @@ void NetServer::do_accept()
     [this](sys::error_code ec, tcp::socket socket)
       {
         if (!ec) {
-          auto unauth = std::make_shared<uzel::session>(std::move(socket), uzel::Direction::incoming);
-          unauth->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
-          unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
-          unauth->start();
+          auto unauth = std::make_shared<uzel::session>(std::move(socket), uzel::Direction::incoming, socket.remote_endpoint().address());
+          m_connectionsPerAddr[socket.remote_endpoint().address()].insert(unauth);
+          unauth->s_closed.connect([&](uzel::session::shr_t ss){ onSessionClosed(ss);});
+          if(m_connectionsPerAddr[socket.remote_endpoint().address()].size() > MaxConnectionsWithAddr) {
+            unauth->gracefullClose("connection refused: too many connections");
+            BOOST_LOG_TRIVIAL(warning) << "refused connection from "  << socket.remote_endpoint() << ", to many connections...";
+          } else {
+            unauth->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
+            unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
+            unauth->start();
+          }
         }
 
         do_accept();
       });
 }
 
+
+void NetServer::onSessionClosed(uzel::session::shr_t ss)
+{
+  if(ss->direction() == +uzel::Direction::outgoing) {
+      // we need to reconnect if
+      // 1. remote hostname is listed in to_connect_to
+      // and
+      // 2. we do not have 2 active authorized connections to it already
+  }
+  m_connectionsPerAddr[ss->remoteIp()].erase(ss);
+}
 
 
 void NetServer::localMsg(uzel::Msg & msg)

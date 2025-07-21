@@ -45,6 +45,8 @@ namespace uzel
     [[nodiscard]] bool isLocalBroadcast() const;
     [[nodiscard]] std::string str() const;
     [[nodiscard]] std::string move_tostr();
+    [[nodiscard]] std::vector<char> moveToCharvec();
+    [[nodiscard]] std::vector<char> charvec() const;
     [[nodiscard]] Addr from() const;
     [[nodiscard]] Addr dest() const;
     [[nodiscard]] const ptree& header() const;
