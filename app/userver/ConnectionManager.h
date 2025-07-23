@@ -6,7 +6,7 @@
 #include <chrono>
 
 
-BETTER_ENUM(HostStatus, int8_t, initial, resolving, resolving_error, connecting, connection_error, authenticated); //NOLINT
+BETTER_ENUM(HostStatus, int8_t, initial, resolving, resolving_error, connecting, connection_error, authenticated, closed); //NOLINT
 
 /** Status of the remote host to connect to */
 class RemoteHostToConnect
@@ -31,8 +31,6 @@ public:
   }
 
 
-
-
 private:
   std::string m_hostname;
   boost::asio::ip::address m_addr;
@@ -54,23 +52,6 @@ public:
   ~ConnectionManager() = default;
 
   using UMap = std::unordered_map<std::string, RemoteHostToConnect>;
-
-  template<class ...Args>
-  std::pair<UMap::iterator, bool> emplace(Args&&... args)
-  {
-    return m_connectTo.emplace(std::forward(args)...);
-  }
-
-  void setStatus(const std::string &hname, HostStatus hs)
-  {
-    auto hit = m_connectTo.find(hname);
-    if(hit == m_connectTo.end()) {
-      throw std::runtime_error("unknown host " + hname);
-    }
-    hit->second.setStatus(hs);
-  }
-
-  UMap &connectMap() { return m_connectTo;}
 
   void startConnecting(const std::string &hname);
   void startConnecting();

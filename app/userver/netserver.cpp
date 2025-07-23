@@ -10,7 +10,6 @@
 //#include <functional>
 
 using boost::asio::ip::tcp;
-using std::for_each;
 namespace io = boost::asio;
 namespace sys = boost::system;
 

@@ -18,7 +18,7 @@ void ConnectionManager::startConnecting(const std::string &hname) {
   if(uzel::UConfigS::getUConfig().isLocalNode(hname)) {
     return;
   }
-  emplace(hname, RemoteHostToConnect(hname));
+  m_connectTo.emplace(hname, RemoteHostToConnect(hname));
 }
 
 
@@ -42,27 +42,33 @@ void ConnectionManager::startConnecting(std::shared_ptr<io::steady_timer> timer)
     {
       case +HostStatus::initial:
       {
-        hit.second.setStatus(HostStatus::resolving);
         startResolving(hit.second);
       }
       break;
+      case +HostStatus::connection_error: [[fallthrough]] ;
       case +HostStatus::resolving_error:
+      case +HostStatus::closed:
       {
         if(std::chrono::duration_cast<std::chrono::seconds>(now - hit.second.statusChangeTS()).count() > DelayReconnect_sec) {
-          hit.second.setStatus(HostStatus::resolving);
           startResolving(hit.second);
         }
       }
       break;
+      case +HostStatus::connecting:  [[fallthrough]] ;
+      case +HostStatus::resolving:
+      case +HostStatus::authenticated:
+          // do nothing
+        break;
     }
   }
 }
 
 void ConnectionManager::startResolving(RemoteHostToConnect &rh)
 {
+  rh.setStatus(HostStatus::resolving);
   BOOST_LOG_TRIVIAL(debug) << DBGOUT << " resolving " << rh.hostname() << "...";
   m_aresolver.async_resolve<tcp>(rh.hostname(), "32300",
-                                 [this,rh](const sys::error_code ec, const tcp::resolver::results_type resit){
+                                 [this,&rh](const sys::error_code ec, const tcp::resolver::results_type resit){
                                    BOOST_LOG_TRIVIAL(debug) << DBGOUT;
                                    connectResolved(ec,resit,rh);
                                  });
@@ -82,9 +88,13 @@ void ConnectionManager::connectResolved(const sys::error_code ec, const tcp::res
       tcp::socket sock{m_iocontext};
       auto unauth = std::make_shared<uzel::session>(std::move(sock), uzel::Direction::outgoing, rezit->endpoint().address(), hname);
       m_connectionsPerAddr[rezit->endpoint().address()].insert(unauth);
-      unauth->s_closed.connect([&](uzel::session::shr_t ss){ onSessionClosed(ss);});
-      unauth->s_connect_error.connect([&](const std::string &hname){ reconnectAfterDelay(hname);});
-      unauth->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
+      unauth->s_closed.connect([&](uzel::session::shr_t ss){
+        rh.setStatus(HostStatus::closed);
+        onSessionClosed(ss);});
+      unauth->s_connect_error.connect([&](const std::string &hname){ rh.setStatus(HostStatus::connection_error); });
+      unauth->s_auth.connect([&](uzel::session::shr_t ss) {
+        rh.setStatus(HostStatus::authenticated);
+        auth(ss); });
       unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
       unauth->startConnection(rezit);
     }
