@@ -1,12 +1,13 @@
 #pragma once
 
+#include "uzel/session.h"
 #include <uzel/enum.h>
 #include <uzel/aresolver.h>
 #include <boost/asio.hpp>
 #include <chrono>
 
 
-BETTER_ENUM(HostStatus, int8_t, initial, resolving, resolving_error, connecting, connection_error, authenticated, closed); //NOLINT
+BETTER_ENUM(HostStatus, int8_t, initial, resolving, resolving_error, connecting, connection_error, connected, closed); //NOLINT
 
 /** Status of the remote host to connect to */
 class RemoteHostToConnect
@@ -43,7 +44,7 @@ private:
 class ConnectionManager final
 {
 public:
-  explicit ConnectionManager(boost::asio::io_context& iocontextw, aresolver &resolver);
+  explicit ConnectionManager(boost::asio::io_context& iocontextw, aresolver &resolver, uzel::IpToSession &ipToSession);
 
   ConnectionManager(ConnectionManager &&) = delete;
   ConnectionManager &operator=(const ConnectionManager &) = delete;
@@ -65,6 +66,7 @@ private:
 private:
   boost::asio::io_context& m_iocontext;
   aresolver &m_aresolver;
+  uzel::IpToSession &m_ipToSession;
   UMap m_connectTo; ///!< map remote hostnames to be connected to their status
   const int RefreshHostStatus_sec{15};
   const int DelayReconnect_sec{30};

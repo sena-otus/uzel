@@ -10,10 +10,12 @@
 #include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/asio.hpp>
+
+#include <unordered_map>
+#include <unordered_set>
 #include <deque>
 #include <memory>
 #include <array>
-#include <queue>
 
 namespace uzel
 {
@@ -126,18 +128,21 @@ private:
 //  boost::signals2::connection m_recv_error_c;
 };
 
-
-//   using BPriorityTranslator = BEnumTranslator<uzel::Priority>;
-
-// // Register translators
-//   namespace boost { namespace property_tree {
-//       template<typename Ch, typename Traits, typename Alloc>
-//       struct translator_between<std::basic_string<Ch, Traits, Alloc>, uzel::Priority> {
-//         using type = BPriorityTranslator;
-//       };
-//     }
-//   }
+  struct AddressHash {
+    std::size_t operator()(const boost::asio::ip::address& addr) const {
+      return std::hash<std::string>()(addr.to_string());
+    }
+  };
 
 
+  struct AddressEqual {
+    bool operator()(const boost::asio::ip::address& lhs, const boost::asio::ip::address& rhs) const {
+      return lhs == rhs;
+    }
+  };
+
+  using IpToSession = std::unordered_map<boost::asio::ip::address,
+                     std::unordered_set<uzel::session::shr_t>,
+                     AddressHash, AddressEqual>;
 
 }

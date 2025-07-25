@@ -8,7 +8,6 @@
 
 #include <boost/asio.hpp>
 #include <map>
-#include <unordered_set>
 #include <unordered_map>
 
 
@@ -17,17 +16,6 @@ namespace uzel
   class session;
 }
 
-struct AddressHash {
-    std::size_t operator()(const boost::asio::ip::address& addr) const {
-        return std::hash<std::string>()(addr.to_string());
-    }
-};
-
-struct AddressEqual {
-    bool operator()(const boost::asio::ip::address& lhs, const boost::asio::ip::address& rhs) const {
-        return lhs == rhs;
-    }
-};
 
 /** @brief tcp server */
 class NetServer
@@ -67,14 +55,11 @@ private:
   const int MaxConnectionsWithAddr = 10;
   const unsigned ResolverThreads = 5;
 
-
+  uzel::IpToSession m_sessionByIp;
   boost::asio::ip::tcp::acceptor m_acceptor;
   std::map<std::string, uzel::session::shr_t> m_locals;
   std::unordered_map<std::string, uzel::remote> m_node; ///<! map nodes to channels
 
-  std::unordered_map<boost::asio::ip::address,
-                     std::unordered_set<uzel::session::shr_t>,
-                     AddressHash, AddressEqual> m_connectionsPerAddr;
   aresolver m_aresolver;
   boost::asio::io_context& m_iocontext;
   ConnectionManager m_conman;

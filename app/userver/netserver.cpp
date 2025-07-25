@@ -18,7 +18,7 @@ namespace sys = boost::system;
 
 NetServer::NetServer(io::io_context& io_context, unsigned short port)
   : m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),  m_aresolver{ResolverThreads, io_context}, m_iocontext(io_context),
-    m_conman(m_iocontext, m_aresolver)
+    m_conman(m_iocontext, m_aresolver, m_sessionByIp)
 {
     // that throws exception!
     // TODO:  check how to properly set an option
@@ -75,9 +75,9 @@ void NetServer::do_accept()
       {
         if (!ec) {
           auto unauth = std::make_shared<uzel::session>(std::move(socket), uzel::Direction::incoming, socket.remote_endpoint().address());
-          m_connectionsPerAddr[socket.remote_endpoint().address()].insert(unauth);
+          m_sessionByIp[socket.remote_endpoint().address()].insert(unauth);
           unauth->s_closed.connect([&](uzel::session::shr_t ss){ onSessionClosed(ss);});
-          if(m_connectionsPerAddr[socket.remote_endpoint().address()].size() > MaxConnectionsWithAddr) {
+          if(m_sessionByIp[socket.remote_endpoint().address()].size() > MaxConnectionsWithAddr) {
             unauth->gracefullClose("connection refused: too many connections");
             BOOST_LOG_TRIVIAL(warning) << "refused connection from "  << socket.remote_endpoint() << ", to many connections...";
           } else {
@@ -100,7 +100,7 @@ void NetServer::onSessionClosed(uzel::session::shr_t ss)
       // and
       // 2. we do not have 2 active authorized connections to it already
   }
-  m_connectionsPerAddr[ss->remoteIp()].erase(ss);
+  m_sessionByIp[ss->remoteIp()].erase(ss);
 }
 
 
