@@ -55,9 +55,9 @@ void NetClient::connectResolved(const boost::system::error_code ec, const tcp::r
   } else {
     BOOST_LOG_TRIVIAL(info) << "connecting to  "  << rezit->host_name() << "->" << rezit->endpoint();
     tcp::socket sock{m_work->get_io_context()};
-    auto unauth = std::make_shared<session>(std::move(sock));
+    auto unauth = std::make_shared<uzel::session>(std::move(sock), uzel::Direction::outgoing, rezit->endpoint().address(), rezit->host_name());
     unauth->s_connect_error.connect([&](const std::string &){ reconnectAfterDelay();});
-    unauth->s_auth.connect([&](session::shr_t ss){ auth(ss); }); // NOLINT(performance-unnecessary-value-param)
+    unauth->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); }); // NOLINT(performance-unnecessary-value-param)
     unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
     unauth->startConnection(rezit);
   }
@@ -68,7 +68,7 @@ void NetClient::dispatch(uzel::Msg &msg)
 {
 }
 
-void NetClient::auth(session::shr_t ss)
+void NetClient::auth(uzel::session::shr_t ss)
 {
   if(ss->msg1().fromLocal()) {
     auto appname = ss->msg1().from().app();
@@ -83,7 +83,7 @@ void NetClient::auth(session::shr_t ss)
   } else {
     BOOST_LOG_TRIVIAL(error) << "connected to something wrong, close connnection and reconnect after delay...";
       // throw std::runtime_error("should not get remote connection here");
-    ss->disconnect();
+    ss->gracefullClose("bad auth");
     reconnectAfterDelay();
   }
 }

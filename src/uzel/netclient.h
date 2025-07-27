@@ -5,7 +5,10 @@
 #include <boost/asio.hpp>
 #include <map>
 
-class session;
+namespace uzel
+{
+  class session;
+}
 
 /** @brief TCP client */
 class NetClient
@@ -30,13 +33,13 @@ public:
 
 private:
   void start();
-  void auth(session::shr_t ss);
+  void auth(uzel::session::shr_t ss);
   void do_accept();
   void serviceMsg(uzel::Msg &msg);
   void reconnectAfterDelay();
   void connectResolved( boost::system::error_code ec,  const boost::asio::ip::tcp::resolver::results_type &rezit, const std::string &hname);
 
-  std::map<std::string, session::shr_t> m_locals;
+  std::map<std::string, uzel::session::shr_t> m_locals;
   aresolver m_aresolver;
   boost::optional<boost::asio::io_context::work> m_work;
   boost::asio::steady_timer m_reconnectTimer;
