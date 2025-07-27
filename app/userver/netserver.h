@@ -51,6 +51,7 @@ private:
     /** add authenticated session to remote channel */
   void addAuthSessionToRemote(const std::string &rnode, uzel::session::shr_t ss);
   void onSessionClosed(uzel::session::shr_t ss);
+  void onSessionCreated(uzel::session::shr_t unconnectedSession);
 
   const int MaxConnectionsWithAddr = 10;
   const unsigned ResolverThreads = 5;
@@ -58,7 +59,7 @@ private:
   uzel::IpToSession m_sessionByIp;
   boost::asio::ip::tcp::acceptor m_acceptor;
   std::map<std::string, uzel::session::shr_t> m_locals;
-  std::unordered_map<std::string, uzel::remote> m_node; ///<! map nodes to channels
+  uzel::NodeToSession m_node; ///<! map nodes to sessions
 
   aresolver m_aresolver;
   boost::asio::io_context& m_iocontext;

@@ -18,7 +18,7 @@ namespace sys = boost::system;
 
 NetServer::NetServer(io::io_context& io_context, unsigned short port)
   : m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),  m_aresolver{ResolverThreads, io_context}, m_iocontext(io_context),
-    m_conman(m_iocontext, m_aresolver, m_sessionByIp)
+    m_conman(m_iocontext, m_aresolver, m_sessionByIp, m_node)
 {
     // that throws exception!
     // TODO:  check how to properly set an option
@@ -30,6 +30,9 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
     m_conman.startConnecting(rhost);
   }
 
+  m_conman.s_sessionCreated.connect([&](uzel::session::shr_t ss) {
+      onSessionCreated(ss);
+  });
   m_conman.startConnecting();
 }
 
@@ -67,6 +70,15 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
 // }
 
 
+void NetServer::onSessionCreated(uzel::session::shr_t unconnectedSession)
+{
+  unconnectedSession->s_closed.connect([&](uzel::session::shr_t ss){ onSessionClosed(ss);});
+  // unconnectedSession->s_connect_error.connect([&](const std::string &hname){ reconnectAfterDelay(hname);});
+  unconnectedSession->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
+  unconnectedSession->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
+}
+
+
 
 void NetServer::do_accept()
 {
@@ -94,12 +106,6 @@ void NetServer::do_accept()
 
 void NetServer::onSessionClosed(uzel::session::shr_t ss)
 {
-  if(ss->direction() == +uzel::Direction::outgoing) {
-      // we need to reconnect if
-      // 1. remote hostname is listed in to_connect_to
-      // and
-      // 2. we do not have 2 active authorized connections to it already
-  }
   m_sessionByIp[ss->remoteIp()].erase(ss);
 }
 
