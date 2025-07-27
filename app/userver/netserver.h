@@ -51,7 +51,7 @@ private:
     /** add authenticated session to remote channel */
   void addAuthSessionToRemote(const std::string &rnode, uzel::session::shr_t ss);
   void onSessionClosed(uzel::session::shr_t ss);
-  void onSessionCreated(uzel::session::shr_t unconnectedSession);
+  void onSessionCreated(uzel::session::shr_t newSession);
 
   const int MaxConnectionsWithAddr = 10;
   const unsigned ResolverThreads = 5;

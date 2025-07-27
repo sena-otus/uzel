@@ -37,13 +37,13 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
 }
 
 
-void NetServer::onSessionCreated(uzel::session::shr_t unconnectedSession)
+void NetServer::onSessionCreated(uzel::session::shr_t newSession)
 {
-  m_ipToSession[unconnectedSession->remoteIp()].insert(unconnectedSession);
-  unconnectedSession->s_closed.connect([&](uzel::session::shr_t ss){ onSessionClosed(ss);});
-  // unconnectedSession->s_connect_error.connect([&](const std::string &hname){ reconnectAfterDelay(hname);});
-  unconnectedSession->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
-  unconnectedSession->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
+  m_ipToSession[newSession->remoteIp()].insert(newSession);
+
+  newSession->s_closed.connect([&](uzel::session::shr_t ss){ onSessionClosed(ss);});
+  newSession->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
+  newSession->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
 }
 
 
@@ -55,14 +55,11 @@ void NetServer::do_accept()
       {
         if (!ec) {
           auto unauth = std::make_shared<uzel::session>(std::move(socket), uzel::Direction::incoming, socket.remote_endpoint().address());
-          m_ipToSession[socket.remote_endpoint().address()].insert(unauth);
-          unauth->s_closed.connect([&](uzel::session::shr_t ss){ onSessionClosed(ss);});
+          onSessionCreated(unauth);
           if(m_ipToSession[socket.remote_endpoint().address()].size() > MaxConnectionsWithAddr) {
             unauth->gracefullClose("connection refused: too many connections");
-            BOOST_LOG_TRIVIAL(warning) << "refused connection from "  << socket.remote_endpoint() << ", to many connections...";
+            BOOST_LOG_TRIVIAL(warning) << "refused connection from "  << socket.remote_endpoint() << ", too many connections...";
           } else {
-            unauth->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
-            unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
             unauth->start();
           }
         }
