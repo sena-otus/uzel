@@ -43,20 +43,20 @@ private:
 
 
 /** Maintain outgoing connections to remote hosts (no listen/accept here) */
-class ConnectionManager final
+class OutgoingManager final
 {
 public:
-  explicit ConnectionManager(
+  explicit OutgoingManager(
     boost::asio::io_context& iocontextw,
     aresolver &resolver,
     uzel::IpToSession &ipToSession,
     uzel::NodeToSession &nodeToSession);
 
-  ConnectionManager(ConnectionManager &&) = delete;
-  ConnectionManager &operator=(const ConnectionManager &) = delete;
-  ConnectionManager &operator=(ConnectionManager &&) = delete;
-  ConnectionManager(const ConnectionManager &other) = delete;
-  ~ConnectionManager() = default;
+  OutgoingManager(OutgoingManager &&) = delete;
+  OutgoingManager &operator=(const OutgoingManager &) = delete;
+  OutgoingManager &operator=(OutgoingManager &&) = delete;
+  OutgoingManager(const OutgoingManager &other) = delete;
+  ~OutgoingManager() = default;
 
   using UMap = std::unordered_map<std::string, RemoteHostToConnect>;
 

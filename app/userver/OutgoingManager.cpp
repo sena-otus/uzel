@@ -1,4 +1,4 @@
-#include "ConnectionManager.h"
+#include "OutgoingManager.h"
 #include "remote.h"
 
 #include <boost/log/trivial.hpp>
@@ -11,7 +11,7 @@ namespace io = boost::asio;
 namespace sys = boost::system;
 
 
-ConnectionManager::ConnectionManager(
+OutgoingManager::OutgoingManager(
   boost::asio::io_context& iocontext,
   aresolver &resolver,
   uzel::IpToSession &ipToSession,
@@ -20,7 +20,7 @@ ConnectionManager::ConnectionManager(
 {
 }
 
-void ConnectionManager::startConnecting(const std::string &hname) {
+void OutgoingManager::startConnecting(const std::string &hname) {
   if(uzel::UConfigS::getUConfig().isLocalNode(hname)) {
     return;
   }
@@ -28,12 +28,12 @@ void ConnectionManager::startConnecting(const std::string &hname) {
 }
 
 
-void ConnectionManager::startConnecting() {
+void OutgoingManager::startConnecting() {
   auto timer = std::make_shared<io::steady_timer>(m_iocontext, io::chrono::seconds(RefreshHostStatus_sec));
   startConnecting(timer);
 }
 
-void ConnectionManager::startConnecting(std::shared_ptr<io::steady_timer> timer)
+void OutgoingManager::startConnecting(std::shared_ptr<io::steady_timer> timer)
 {
   auto now = std::chrono::steady_clock::now();
 
@@ -69,7 +69,7 @@ void ConnectionManager::startConnecting(std::shared_ptr<io::steady_timer> timer)
   }
 }
 
-void ConnectionManager::startResolving(RemoteHostToConnect &rh)
+void OutgoingManager::startResolving(RemoteHostToConnect &rh)
 {
   rh.setStatus(HostStatus::resolving);
   BOOST_LOG_TRIVIAL(debug) << DBGOUT << " resolving " << rh.hostname() << "...";
@@ -81,7 +81,7 @@ void ConnectionManager::startResolving(RemoteHostToConnect &rh)
 }
 
 
-void ConnectionManager::connectResolved(const sys::error_code ec, const tcp::resolver::results_type rezit, RemoteHostToConnect &rh)
+void OutgoingManager::connectResolved(const sys::error_code ec, const tcp::resolver::results_type rezit, RemoteHostToConnect &rh)
 {
   if(ec) {
     BOOST_LOG_TRIVIAL(error) << "error resolving '" << rh.hostname() << "': "<<  ec.message();

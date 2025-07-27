@@ -1,7 +1,7 @@
 #pragma once
 
 #include "remote.h"
-#include "ConnectionManager.h"
+#include "OutgoingManager.h"
 
 #include <uzel/aresolver.h>
 #include <uzel/session.h>
@@ -63,5 +63,5 @@ private:
 
   aresolver m_aresolver;
   boost::asio::io_context& m_iocontext;
-  ConnectionManager m_conman;
+  OutgoingManager m_conman;
 };
