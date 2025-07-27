@@ -64,15 +64,21 @@ bool remote::connected() const
   return m_sessionH && m_sessionL;
 }
 
+  size_t remote::sessionCount() const
+  {
+    return m_sessionWaitForRemote.size() + (m_sessionH ? 1 : 0) + (m_sessionL ? 1 : 0);
+  }
+
+
 void remote::on_session_error(session::shr_t ss)
 {
   BOOST_LOG_TRIVIAL(debug) << "error on session " << ss << ", excluding it from list";
-  for(auto ssi = m_session.begin(); ssi != m_session.end(); ++ssi)
+  for(auto ssi = m_sessionWaitForRemote.begin(); ssi != m_sessionWaitForRemote.end(); ++ssi)
   {
     if(*ssi == ss)
     {
-      m_session.erase(ssi);
-      BOOST_LOG_TRIVIAL(debug) << "excluded, new list size is " << m_session.size();
+      m_sessionWaitForRemote.erase(ssi);
+      BOOST_LOG_TRIVIAL(debug) << "excluded, new list size is " << m_sessionWaitForRemote.size();
       return;
     }
   }
@@ -81,14 +87,14 @@ void remote::on_session_error(session::shr_t ss)
 
 void remote::send(const uzel::Msg &msg)
 {
-  if(m_session.empty())
+  if(!connected())
   {
       // no connection
-    m_outHighQueue.emplace(msg.str());
+    m_outHighQueue.emplace_back(QueuedMsg(msg));
   }
   else {
       // the very last session is the highest priority!
-    m_session.back()->putOutQueue(msg);
+    m_sessionH->putOutQueue(msg);
   }
 }
 
