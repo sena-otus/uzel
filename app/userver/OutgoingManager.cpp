@@ -14,8 +14,8 @@ namespace sys = boost::system;
 OutgoingManager::OutgoingManager(
   boost::asio::io_context& iocontext,
   aresolver &resolver,
-  uzel::IpToSession &ipToSession,
-  uzel::NodeToSession &nodeToSession)
+  const uzel::IpToSession &ipToSession,
+  const uzel::NodeToSession &nodeToSession)
   : m_iocontext(iocontext), m_aresolver(resolver), m_ipToSession(ipToSession), m_nodeToSession(nodeToSession)
 {
 }
