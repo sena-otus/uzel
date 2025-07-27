@@ -31,7 +31,13 @@ namespace uzel
     {
       m_msg = msg.moveToCharvec();
     }
-    // explicit QueuedMsg(Msg &&msg, std::chrono::steady_clock::time_point enqueueTime)
+
+    explicit QueuedMsg(const Msg &msg)
+      : QueuedMsg(std::move(Msg(msg)))
+      {}
+
+
+      // explicit QueuedMsg(Msg &&msg, std::chrono::steady_clock::time_point enqueueTime)
     //   : m_msg(std::move(msg)), m_dt(msg.destType()), m_enqueueTime(enqueueTime)
     // {}
 
@@ -80,6 +86,7 @@ public:
   boost::signals2::signal<void (const std::string &hostname)> s_connect_error;
   boost::signals2::signal<void ()> s_send_error;
   boost::signals2::signal<void ()> s_recv_error;
+  boost::signals2::signal<void ()> s_connected;
   boost::signals2::signal<void (session::shr_t ss)> s_closed;
     // NOLINTEND(misc-non-private-member-variables-in-classes,cppcoreguidelines-non-private-member-variables-in-classes)
 
@@ -99,6 +106,10 @@ public:
   const boost::asio::ip::address& remoteIp() const{ return m_remoteIp;}
   void setRemoteHostName(const std::string &hname) {m_remoteHostName = hname;}
   const std::string& remoteHostName() const{ return m_remoteHostName;}
+  void setRemoteNode(const std::string &node) { m_remoteNode = node;}
+  const std::string& remoteNode() const{ return m_remoteNode;}
+  [[nodiscard]] bool authenticated() const { return !m_remoteNode.empty();}
+
 
   [[nodiscard]] Direction direction() const {return m_direction;}
 
@@ -119,7 +130,8 @@ private:
   bool m_closeFlag{false};
   bool m_stopped{false};
   std::string m_reason{};
-  std::string m_remoteHostName{}; // only if Direction::outgoing
+  std::string m_remoteHostName{}; //!< is set only if Direction::outgoing
+  std::string m_remoteNode{}; //!< is set only after authorization
   boost::asio::ip::address m_remoteIp{};
   boost::signals2::connection m_rejected_c;
   boost::signals2::connection m_authorized_c;
