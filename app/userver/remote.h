@@ -28,7 +28,7 @@ public:
 private:
   explicit remote(std::string &&nodeName);
 
-  void on_session_error(session::shr_t ss);
+  void onSessionClosed(session::shr_t ss);
 
   std::string m_node; ///! remote node name - known only after authentication
   std::string m_hname; ///! remote hostname (if known) that was used to connect to

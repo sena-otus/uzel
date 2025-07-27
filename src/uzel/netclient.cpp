@@ -57,7 +57,7 @@ void NetClient::connectResolved(const boost::system::error_code ec, const tcp::r
     tcp::socket sock{m_work->get_io_context()};
     auto unauth = std::make_shared<uzel::session>(std::move(sock), uzel::Direction::outgoing, rezit->endpoint().address(), rezit->host_name());
     unauth->s_connect_error.connect([&](const std::string &){ reconnectAfterDelay();});
-    unauth->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); }); // NOLINT(performance-unnecessary-value-param)
+    unauth->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
     unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
     unauth->startConnection(rezit);
   }

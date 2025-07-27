@@ -15,8 +15,8 @@ remote::remote(std::string nodename)
 
 void remote::addSession(session::shr_t ss)
 {
-  ss->s_send_error.connect([&]() { on_session_error(ss);});
-  ss->s_recv_error.connect([&]() { on_session_error(ss);});
+  ss->s_closed.connect([&](session::shr_t ss) { onSessionClosed(ss);});
+  ss->s_closed.connect([&](session::shr_t ss) { onSessionClosed(ss);});
     // who is the boss?
   if(ss->msg1().from().node() > uzel::UConfigS::getUConfig().nodeName()) {
       // he wins
@@ -70,7 +70,7 @@ bool remote::connected() const
   }
 
 
-void remote::on_session_error(session::shr_t ss)
+void remote::onSessionClosed(session::shr_t ss)
 {
   BOOST_LOG_TRIVIAL(debug) << "error on session " << ss << ", excluding it from list";
   for(auto ssi = m_sessionWaitForRemote.begin(); ssi != m_sessionWaitForRemote.end(); ++ssi)
@@ -82,6 +82,8 @@ void remote::on_session_error(session::shr_t ss)
       return;
     }
   }
+  if(m_sessionH == ss) m_sessionH.reset();
+  if(m_sessionL == ss) m_sessionL.reset();
 }
 
 
@@ -91,9 +93,7 @@ void remote::send(const uzel::Msg &msg)
   {
       // no connection
     m_outHighQueue.emplace_back(QueuedMsg(msg));
-  }
-  else {
-      // the very last session is the highest priority!
+  } else {
     m_sessionH->putOutQueue(msg);
   }
 }

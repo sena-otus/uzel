@@ -177,10 +177,10 @@ void NetServer::dispatch(uzel::Msg &msg)
 void NetServer::addAuthSessionToRemote(const std::string &rnode, uzel::session::shr_t ss)
 {
   auto &remote = findAddRemote(rnode);
-  remote.addSession(ss); // NOLINT(performance-unnecessary-value-param)
+  remote.addSession(ss);
 }
 
-void NetServer::auth(uzel::session::shr_t ss) // NOLINT(performance-unnecessary-value-param)
+void NetServer::auth(uzel::session::shr_t ss)
 {
   if(ss->msg1().fromLocal()) {
     BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "new local connection, store local session with name " << ss->msg1().from().app();

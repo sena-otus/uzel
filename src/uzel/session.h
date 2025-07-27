@@ -36,11 +36,6 @@ namespace uzel
       : QueuedMsg(std::move(Msg(msg)))
       {}
 
-
-      // explicit QueuedMsg(Msg &&msg, std::chrono::steady_clock::time_point enqueueTime)
-    //   : m_msg(std::move(msg)), m_dt(msg.destType()), m_enqueueTime(enqueueTime)
-    // {}
-
     [[nodiscard]] Msg::DestType destType() const { return m_dt; }
     [[nodiscard]] std::chrono::steady_clock::time_point enqueueTime() const { return m_enqueueTime;}
     [[nodiscard]] const std::vector<char>& msg() const  { return m_msg; }
