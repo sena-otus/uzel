@@ -18,7 +18,7 @@ namespace sys = boost::system;
 
 NetServer::NetServer(io::io_context& io_context, unsigned short port)
   : m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),  m_aresolver{ResolverThreads, io_context}, m_iocontext(io_context),
-    m_conman(m_iocontext, m_aresolver, m_ipToSession, m_nodeToSession)
+    m_outman(m_iocontext, m_aresolver, m_ipToSession, m_nodeToSession)
 {
     // that throws exception!
     // TODO:  check how to properly set an option
@@ -27,13 +27,13 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
   auto to_connect_to = uzel::UConfigS::getUConfig().remotes();
   for(auto && rhost : to_connect_to)
   {
-    m_conman.startConnecting(rhost);
+    m_outman.startConnecting(rhost);
   }
 
-  m_conman.s_sessionCreated.connect([&](uzel::session::shr_t ss) {
+  m_outman.s_sessionCreated.connect([&](uzel::session::shr_t ss) {
       onSessionCreated(ss);
   });
-  m_conman.startConnecting();
+  m_outman.startConnecting();
 }
 
 

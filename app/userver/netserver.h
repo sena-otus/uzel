@@ -63,5 +63,5 @@ private:
 
   aresolver m_aresolver;
   boost::asio::io_context& m_iocontext;
-  OutgoingManager m_conman;
+  OutgoingManager m_outman;
 };
