@@ -30,7 +30,9 @@ session::~session()
   m_rejected_c.disconnect();
   m_authorized_c.disconnect();
   m_dispatch_c.disconnect();
-  stop();
+
+    // do not call stop() from destructor, it uses shared_from_this()!
+  shutdown();
 }
 
 void session::start()
@@ -160,7 +162,6 @@ void session::do_read()
 void session::do_write()
 {
   if(outQueueEmpty()) return;
-  BOOST_LOG_TRIVIAL(debug) << DBGOUT << "starting async_write()...";
   boost::asio::async_write(
     m_socket, boost::asio::buffer(m_outQueue.front().msg()),
     [self = shared_from_this()](boost::system::error_code ec, std::size_t /*length*/)
@@ -210,15 +211,34 @@ void session::putOutQueue(uzel::Msg &&msg)
 }
 
 
+
 void session::stop()
+{
+  if(m_stopped) return;
+
+  shutdown();
+
+    // set flags after shutdown(), so it will prevent shutdown() from
+    // executing:
+
+  m_stopped = true;
+  m_closeFlag = true;
+
+    // signal everybody interested
+  s_closed(shared_from_this());
+}
+
+void session::shutdown()
 {
   if(m_stopped) return;
   m_stopped = true;
   m_closeFlag = true;
-  BOOST_LOG_TRIVIAL(debug) << DBGOUT << " session::stop()!";
-  boost::system::error_code ec;
 
+  boost::system::error_code ec;
   m_socket.cancel(ec);
+  if (ec && ec != boost::asio::error::bad_descriptor) {
+    BOOST_LOG_TRIVIAL(error) << "Cancel error: " << ec.message();
+  }
 
     // Shut down socket (this flushes buffers and signals EOF to peer)
   m_socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
@@ -231,8 +251,7 @@ void session::stop()
   if (ec) {
     BOOST_LOG_TRIVIAL(error) << "Close error: " << ec.message();
   }
-
-  s_closed(shared_from_this());
 }
+
 
 }

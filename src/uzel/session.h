@@ -112,7 +112,16 @@ private:
   void do_read();
   void do_write();
   void sendByeAndClose();
+    /**
+     *  shutdown socket and release all related resources, emits signal
+     *  s_closed(shared_from_this()), so it can not be called from ~session()
+     *  */
   void stop();
+    /**
+     * Same as a stop() above but can be called from destructor as it
+     * does not call emits signal s_closed(shared_from_this())
+     * */
+  void shutdown();
 
   boost::asio::ip::tcp::socket m_socket;
   Priority m_priority{Priority::undefined};
