@@ -1,5 +1,6 @@
 #pragma once
 
+#include "remote.h"
 #include "uzel/session.h"
 #include <uzel/enum.h>
 #include <uzel/aresolver.h>
@@ -37,6 +38,7 @@ private:
   boost::asio::ip::address m_addr;
   HostStatus m_status{HostStatus::initial};
   std::chrono::steady_clock::time_point m_statusChangeTS;
+  size_t m_sessions{0};
 };
 
 
@@ -44,7 +46,11 @@ private:
 class ConnectionManager final
 {
 public:
-  explicit ConnectionManager(boost::asio::io_context& iocontextw, aresolver &resolver, uzel::IpToSession &ipToSession);
+  explicit ConnectionManager(
+    boost::asio::io_context& iocontextw,
+    aresolver &resolver,
+    uzel::IpToSession &ipToSession,
+    uzel::NodeToSession &nodeToSession);
 
   ConnectionManager(ConnectionManager &&) = delete;
   ConnectionManager &operator=(const ConnectionManager &) = delete;
@@ -57,6 +63,11 @@ public:
   void startConnecting(const std::string &hname);
   void startConnecting();
 
+    // NOLINTBEGIN(misc-non-private-member-variables-in-classes,cppcoreguidelines-non-private-member-variables-in-classes)
+  boost::signals2::signal<void (uzel::session::shr_t unauth)> s_sessionCreated;
+    // NOLINTEND(misc-non-private-member-variables-in-classes,cppcoreguidelines-non-private-member-variables-in-classes)
+
+
 private:
   void startConnecting(std::shared_ptr<boost::asio::steady_timer> timer);
   void startResolving(RemoteHostToConnect &rh);
@@ -67,6 +78,7 @@ private:
   boost::asio::io_context& m_iocontext;
   aresolver &m_aresolver;
   uzel::IpToSession &m_ipToSession;
+  uzel::NodeToSession &m_nodeToSession;
   UMap m_connectTo; ///!< map remote hostnames to be connected to their status
   const int RefreshHostStatus_sec{15};
   const int DelayReconnect_sec{30};

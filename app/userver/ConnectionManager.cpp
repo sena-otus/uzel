@@ -1,4 +1,5 @@
 #include "ConnectionManager.h"
+#include "remote.h"
 
 #include <boost/log/trivial.hpp>
 #include <uzel/uconfig.h>
@@ -10,8 +11,12 @@ namespace io = boost::asio;
 namespace sys = boost::system;
 
 
-ConnectionManager::ConnectionManager(boost::asio::io_context& iocontext, aresolver &resolver, uzel::IpToSession &ipToSession)
-  : m_iocontext(iocontext), m_aresolver(resolver), m_ipToSession(ipToSession)
+ConnectionManager::ConnectionManager(
+  boost::asio::io_context& iocontext,
+  aresolver &resolver,
+  uzel::IpToSession &ipToSession,
+  uzel::NodeToSession &nodeToSession)
+  : m_iocontext(iocontext), m_aresolver(resolver), m_ipToSession(ipToSession), m_nodeToSession(nodeToSession)
 {
 }
 
@@ -57,7 +62,7 @@ void ConnectionManager::startConnecting(std::shared_ptr<io::steady_timer> timer)
       break;
       case +HostStatus::connecting:  [[fallthrough]] ;
       case +HostStatus::resolving:
-      case +HostStatus::authenticated:
+      case +HostStatus::connected:
           // do nothing
         break;
     }
@@ -86,23 +91,52 @@ void ConnectionManager::connectResolved(const sys::error_code ec, const tcp::res
 
   BOOST_LOG_TRIVIAL(info) << "resolved "  << rezit->host_name() << "->" << rezit->endpoint();
 
-  auto m_sit = m_ipToSession.find(rezit->endpoint().address());
-    // if we have already 2 outgoing connections to that ip, then stop
+  auto ipit = m_ipToSession.find(rezit->endpoint().address());
+
+    // If we have already 2 outgoing sessions to that IP, then stop.
+    // Do not count incoming connections from the same IP, they may be
+    // not from the same host because of the NAT, redirections, etc.
+    //
+    // But if we have 1 outgoing authenticated session to that IP and
+    // another authenticated session with the same node, then we should
+    // stop too
+
   size_t sessions = 0;
-  if(m_sit != m_ipToSession.end()) {
-    for(auto && sit : m_sit->second) {
+  std::string outgoingnode;
+  if(ipit != m_ipToSession.end()) {
+    for(auto && sit : ipit->second) {
       if(sit->direction() == +uzel::Direction::outgoing) {
         ++sessions;
+        if(sessions >= 2) {
+          if(rh.status() != +HostStatus::connected) { rh.setStatus(HostStatus::connected); }
+
+          BOOST_LOG_TRIVIAL(debug) << "there are already "  << sessions
+                                   << " outgoing sessions, so do not create a new one, set status to connected";
+          return;
+        }
+        if(sit->authenticated()) {
+            // remember the node name
+          outgoingnode = sit->remoteNode();
+        }
+      }
+    }
+    if(!outgoingnode.empty()) {
+        // now we should check if we have 2 authenticated sessions with that node
+      auto nodeit = m_nodeToSession.find(outgoingnode);
+      if(nodeit != m_nodeToSession.end())
+      {
+        if(nodeit->second.sessionCount() >= 2)
+        {
+          if(rh.status() != +HostStatus::connected) { rh.setStatus(HostStatus::connected); }
+
+          BOOST_LOG_TRIVIAL(debug) << "there are already "  << sessions
+                                   << " authenticated sessions, so do not create a new one, set status to connected";
+          return;
+        }
       }
     }
   }
-  if(sessions >= 2) {
-    if(rh.status() != +HostStatus::connected) { rh.setStatus(HostStatus::connected); }
 
-    BOOST_LOG_TRIVIAL(debug) << "there are already "  << m_sit->second.size()
-                             << " connections, so do not create a new one, set status to connected";
-    return;
-  }
   rh.setAddr(rezit->endpoint().address());
   rh.setStatus(HostStatus::connecting);
   while(sessions < 2)
@@ -110,24 +144,17 @@ void ConnectionManager::connectResolved(const sys::error_code ec, const tcp::res
     tcp::socket sock{m_iocontext};
     auto unauth = std::make_shared<uzel::session>(std::move(sock), uzel::Direction::outgoing, rezit->endpoint().address(), rh.hostname());
     m_ipToSession[rezit->endpoint().address()].insert(unauth);
-    unauth->s_closed.connect([&](uzel::session::shr_t ss){
+    s_sessionCreated(unauth);
+
+    unauth->s_closed.connect([&](uzel::session::shr_t ss) {
       rh.setStatus(HostStatus::closed);
-      onSessionClosed(ss);});
+    });
+
     unauth->s_connect_error.connect([&](const std::string &hname){
-      rh.setStatus(HostStatus::connection_error);});
-    unauth->s_auth.connect([&](uzel::session::shr_t ss){
-        rh.setStatus(HostStatus::authenticated);
-        auth(ss); });
-    unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
+      rh.setStatus(HostStatus::connection_error);
+    });
     unauth->startConnection(rezit);
     sessions++;
   }
   rh.setStatus(HostStatus::connected);
-}
-
-
-void ConnectionManager::onSessionClosed(uzel::session::shr_t ss)
-{
-  m_ipToSession[ss->remoteIp()].erase(ss);
-
 }
