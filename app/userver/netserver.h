@@ -56,10 +56,10 @@ private:
   const int MaxConnectionsWithAddr = 10;
   const unsigned ResolverThreads = 5;
 
-  uzel::IpToSession m_sessionByIp;
+  uzel::IpToSession m_ipToSession;
   boost::asio::ip::tcp::acceptor m_acceptor;
   std::map<std::string, uzel::session::shr_t> m_locals;
-  uzel::NodeToSession m_node; ///<! map nodes to sessions
+  uzel::NodeToSession m_nodeToSession; ///<! map nodes to sessions
 
   aresolver m_aresolver;
   boost::asio::io_context& m_iocontext;

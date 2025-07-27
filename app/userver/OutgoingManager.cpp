@@ -143,7 +143,6 @@ void OutgoingManager::connectResolved(const sys::error_code ec, const tcp::resol
   {
     tcp::socket sock{m_iocontext};
     auto unauth = std::make_shared<uzel::session>(std::move(sock), uzel::Direction::outgoing, rezit->endpoint().address(), rh.hostname());
-    m_ipToSession[rezit->endpoint().address()].insert(unauth);
     s_sessionCreated(unauth);
 
     unauth->s_closed.connect([&](uzel::session::shr_t ss) {

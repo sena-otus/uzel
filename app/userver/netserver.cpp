@@ -18,7 +18,7 @@ namespace sys = boost::system;
 
 NetServer::NetServer(io::io_context& io_context, unsigned short port)
   : m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),  m_aresolver{ResolverThreads, io_context}, m_iocontext(io_context),
-    m_conman(m_iocontext, m_aresolver, m_sessionByIp, m_node)
+    m_conman(m_iocontext, m_aresolver, m_ipToSession, m_nodeToSession)
 {
     // that throws exception!
     // TODO:  check how to properly set an option
@@ -37,41 +37,9 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
 }
 
 
-
-// void NetServer::reconnectAfterDelay(const std::string &hname)
-// {
-//   auto timer = std::make_shared<io::steady_timer>(m_iocontext, io::chrono::seconds(DelayReconnect_sec));
-//   timer->async_wait([&,timer, hname](const sys::error_code&  /*ec*/){ startResolving(hname);});
-// }
-
-
-
-
-// void NetServer::connectResolved(const sys::error_code ec, const tcp::resolver::results_type rezit, const std::string &hname)
-// {
-//   if(ec) {
-//     BOOST_LOG_TRIVIAL(error) << "error resolving '" << hname << "': "<<  ec.message();
-//     m_conman.setStatus(hname, HostStatus::resolving_error);
-//   } else {
-//     BOOST_LOG_TRIVIAL(info) << "resolved "  << rezit->host_name() << "->" << rezit->endpoint() << ", connecting...";
-//     {
-//       m_conman.setAddr(hname, rezit->endpoint().address());
-//       m_conman.setStatus(hname, HostStatus::connecting);
-//       tcp::socket sock{m_iocontext};
-//       auto unauth = std::make_shared<uzel::session>(std::move(sock), uzel::Direction::outgoing, rezit->endpoint().address(), hname);
-//       m_connectionsPerAddr[rezit->endpoint().address()].insert(unauth);
-//       unauth->s_closed.connect([&](uzel::session::shr_t ss){ onSessionClosed(ss);});
-//       unauth->s_connect_error.connect([&](const std::string &hname){ reconnectAfterDelay(hname);});
-//       unauth->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
-//       unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
-//       unauth->startConnection(rezit);
-//     }
-//   }
-// }
-
-
 void NetServer::onSessionCreated(uzel::session::shr_t unconnectedSession)
 {
+  m_ipToSession[unconnectedSession->remoteIp()].insert(unconnectedSession);
   unconnectedSession->s_closed.connect([&](uzel::session::shr_t ss){ onSessionClosed(ss);});
   // unconnectedSession->s_connect_error.connect([&](const std::string &hname){ reconnectAfterDelay(hname);});
   unconnectedSession->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
@@ -87,9 +55,9 @@ void NetServer::do_accept()
       {
         if (!ec) {
           auto unauth = std::make_shared<uzel::session>(std::move(socket), uzel::Direction::incoming, socket.remote_endpoint().address());
-          m_sessionByIp[socket.remote_endpoint().address()].insert(unauth);
+          m_ipToSession[socket.remote_endpoint().address()].insert(unauth);
           unauth->s_closed.connect([&](uzel::session::shr_t ss){ onSessionClosed(ss);});
-          if(m_sessionByIp[socket.remote_endpoint().address()].size() > MaxConnectionsWithAddr) {
+          if(m_ipToSession[socket.remote_endpoint().address()].size() > MaxConnectionsWithAddr) {
             unauth->gracefullClose("connection refused: too many connections");
             BOOST_LOG_TRIVIAL(warning) << "refused connection from "  << socket.remote_endpoint() << ", to many connections...";
           } else {
@@ -106,7 +74,7 @@ void NetServer::do_accept()
 
 void NetServer::onSessionClosed(uzel::session::shr_t ss)
 {
-  m_sessionByIp[ss->remoteIp()].erase(ss);
+  m_ipToSession[ss->remoteIp()].erase(ss);
 }
 
 
@@ -130,7 +98,7 @@ void NetServer::localbroadcastMsg(uzel::Msg & msg)
 
 void NetServer::broadcastMsg(uzel::Msg &msg)
 {
-  std::ranges::for_each(m_node,
+  std::ranges::for_each(m_nodeToSession,
            [&msg](auto &sp) { sp.second.send(msg); });
 }
 
@@ -149,11 +117,11 @@ std::optional<std::string> NetServer::route(const std::string & target) const
 
 uzel::remote &NetServer::findAddRemote(const std::string &node)
 {
-  auto remoteIt = m_node.find(node);
-  if(remoteIt == m_node.end())
+  auto remoteIt = m_nodeToSession.find(node);
+  if(remoteIt == m_nodeToSession.end())
   {
     BOOST_LOG_TRIVIAL(info) << "created new remote channel for node " << node;
-    remoteIt = m_node.insert({node, uzel::remote(node)}).first;
+    remoteIt = m_nodeToSession.insert({node, uzel::remote(node)}).first;
   } else {
     BOOST_LOG_TRIVIAL(info) << "found existing remote channel for node " << node;
   }
