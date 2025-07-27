@@ -14,6 +14,7 @@ Checks: "*,
 	-zircon-*,
         -performance-avoid-endl,
         -misc-include-cleaner,
+	-performance-unnecessary-value-param,
 "
 #        -readability-else-after-return,
 #        -readability-static-accessed-through-instance,
