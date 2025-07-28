@@ -40,7 +40,7 @@ namespace uzel
     [[nodiscard]] std::chrono::steady_clock::time_point enqueueTime() const { return m_enqueueTime;}
     [[nodiscard]] const std::vector<char>& msg() const  { return m_msg; }
 
-
+  private:
     std::vector<char> m_msg;
     Msg::DestType m_dt;
     std::chrono::steady_clock::time_point m_enqueueTime;
