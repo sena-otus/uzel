@@ -3,6 +3,7 @@
 #include "uconfig.h"
 
 #include <boost/property_tree/json_parser.hpp>
+#include <ios>
 #include <iostream>
 #include <sstream>
 #include <string_view>
@@ -14,7 +15,7 @@
 
 namespace uzel {
   Msg::Msg(Msg::ptree &&header, std::string &&body)
-    : m_body(std::move(body)),  m_destType(DestType::local)
+    : m_body{std::vector<char>{body.begin(), body.end()}},  m_destType(DestType::local)
   {
     m_header.swap(header);
     updateFrom();
@@ -72,7 +73,10 @@ namespace uzel {
     std::ostringstream oss;
     if(m_body.index() == 0) {
       boost::property_tree::write_json(oss, m_header, false);
-      oss << std::get<std::string>(m_body) << "\n";
+      const auto & vbody = std::get<std::vector<char>>(m_body);
+        // TODO: use memcpy
+      oss.write(vbody.data(), static_cast<std::streamsize>(vbody.size()));
+      oss << "\n";
     } else {
       boost::property_tree::write_json(oss, m_header, false);
       boost::property_tree::write_json(oss, std::get<ptree>(m_body), false);
@@ -89,7 +93,10 @@ namespace uzel {
     std::ostringstream oss;
     if(m_body.index() == 0) {
       boost::property_tree::write_json(oss, m_header, false);
-      oss << std::get<std::string>(m_body) << "\n";
+      const auto & vbody = std::get<std::vector<char>>(m_body);
+        // TODO: use memcpy
+      oss.write(vbody.data(), static_cast<std::streamsize>(vbody.size()));
+      oss << "\n";
     } else {
       auto &ibody = m_header.put_child("body", ptree());
       ibody.swap(std::get<ptree>(m_body));
@@ -100,14 +107,14 @@ namespace uzel {
 
   std::vector<char> Msg::charvec() const
   {
-      // FIXME: that is inefficient, store directly to std::vector!
+      // TODO: FIXME: that is inefficient, store directly to std::vector!
     std::string tmpstr = str();
     return {tmpstr.begin(), tmpstr.end()};
   }
 
   std::vector<char> Msg::moveToCharvec()
   {
-      // FIXME: that is inefficient, store directly to std::vector!
+      // TODO: FIXME: that is inefficient, store directly to std::vector!
     std::string str = move_tostr();
     return {str.begin(), str.end()};
   }
@@ -188,16 +195,28 @@ namespace uzel {
     return m_destType == DestType::localbroadcast;
   }
 
+
+
+  class vector_inputbuf : public std::streambuf {
+  public:
+    explicit vector_inputbuf(const std::vector<char>& data) {
+        // const_cast is necessary to workaround setg() flaw
+      char* begin = const_cast<char*>(data.data()); // NOLINT{cppcoreguidelines-pro-type-const-cast}
+      setg(begin, begin, begin + data.size()); // NOLINT{cppcoreguidelines-pro-bounds-pointer-arithmetic}
+    }
+  };
+
   const Msg::ptree& Msg::pbody() const
   {
     if(std::holds_alternative<Msg::ptree>(m_body))
     {
       return std::get<Msg::ptree>(m_body);
     }
-    if(std::holds_alternative<std::string>(m_body)) {
-      auto bodystr(std::move(std::get<std::string>(m_body)));
+    if(std::holds_alternative<std::vector<char>>(m_body)) {
+      auto bodyvec(std::move(std::get<std::vector<char>>(m_body)));
       m_body = Msg::ptree();
-      std::istringstream is(bodystr);
+      vector_inputbuf vibuf(bodyvec);
+      std::istream is(&vibuf);
       auto& pbody = std::get<Msg::ptree>(m_body);
       boost::property_tree::read_json(is, pbody);
       return pbody;

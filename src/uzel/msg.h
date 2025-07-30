@@ -59,7 +59,7 @@ namespace uzel
     void setFromLocal();
 
     ptree m_header; //!< message header
-    mutable std::variant<std::string,boost::property_tree::ptree> m_body; //!< unpared/parsed message body
+    mutable std::variant<std::vector<char>,boost::property_tree::ptree> m_body; //!< unpared/parsed message body
     DestType m_destType;
       // cached values:
     Addr m_dest;
