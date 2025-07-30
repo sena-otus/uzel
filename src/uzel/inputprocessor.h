@@ -2,6 +2,7 @@
 
 #include "acculine.h"
 #include "addr.h"
+#include "msg.h"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/signals2.hpp>
@@ -10,8 +11,6 @@
 
 namespace uzel
 {
-
-  class Msg;
 
     /**
      * InputProcessor performes initial parsing of incoming messages
@@ -33,17 +32,20 @@ namespace uzel
   public:
       /** process new input string */
     bool processNewInput(std::string_view input);
-    void processMsg(Msg && msg);
+    void processMsg(Msg::shr_t msg);
     [[nodiscard]] bool auth() const;
-    bool  auth(const Msg &msg);
+    bool  auth(Msg::shr_t msg);
 
+    // NOLINTBEGIN(misc-non-private-member-variables-in-classes,cppcoreguidelines-non-private-member-variables-in-classes)
       /** signal fired if authentication failed */
-    boost::signals2::signal<void ()> s_rejected{};
+    boost::signals2::signal<void ()> s_rejected;
       /** signal fired on successful authentication */
-    boost::signals2::signal<void (const Msg &msg1)> s_auth{};
+    boost::signals2::signal<void (Msg::shr_t msg1)> s_auth;
       /** signal fired if there is a message to dispatch
        * @param msg message to process */
-    boost::signals2::signal<void (Msg &msg)> s_dispatch{};
+    boost::signals2::signal<void (Msg::shr_t msg)> s_dispatch;
+    // NOLINTEND(misc-non-private-member-variables-in-classes,cppcoreguidelines-non-private-member-variables-in-classes)
+
   private:
       /** process input stream, parse messages */
     AccuLine m_acculine{};

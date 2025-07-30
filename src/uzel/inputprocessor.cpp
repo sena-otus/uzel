@@ -28,7 +28,7 @@ namespace uzel
             Msg::ptree body;
             body.swap(bodyit->second);
             m_header->erase("body");
-            processMsg(Msg(std::move(*m_header), std::move(body)));
+            processMsg(std::make_shared<Msg>(std::move(*m_header), std::move(body)));
             m_header.reset();
           }
         }
@@ -39,7 +39,7 @@ namespace uzel
         continue;
       }
         // create msg
-      processMsg(Msg(std::move(*m_header), std::move(*line)));
+      processMsg(std::make_shared<Msg>(std::move(*m_header), std::move(*line)));
       m_header.reset();
     }
     return true;
@@ -52,10 +52,10 @@ namespace uzel
 
 
 
-  bool InputProcessor::auth(const uzel::Msg &msg)
+  bool InputProcessor::auth(uzel::Msg::shr_t msg)
   {
-    auto app = msg.from().app();
-    auto node = msg.from().node();
+    auto app = msg->from().app();
+    auto node = msg->from().node();
     if(app.empty() || node.empty()) {
       BOOST_LOG_TRIVIAL(error) << "no source appname or nodename in first message - refuse connection";
       return false;
@@ -85,14 +85,14 @@ namespace uzel
         return false;
       }
     }
-    m_peer = msg.from();
+    m_peer = msg->from();
     BOOST_LOG_TRIVIAL(info) << "authenticated "<< (isLocal ? "local" : "remote")
               << " connection from " << m_peer.app() << "@" << m_peer.node();
     return true;
   }
 
 
-  void InputProcessor::processMsg(Msg && msg)
+  void InputProcessor::processMsg(Msg::shr_t msg)
   {
     if(!auth()) {
       if(!auth(msg)) {
