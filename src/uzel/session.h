@@ -16,6 +16,7 @@
 #include <deque>
 #include <memory>
 #include <array>
+#include <vector>
 
 namespace uzel
 {
@@ -26,22 +27,17 @@ namespace uzel
 
   struct QueuedMsg
   {
-    explicit QueuedMsg(Msg &&msg)
-      : m_dt(msg.destType()), m_enqueueTime(std::chrono::steady_clock::now())
+    explicit QueuedMsg(Msg::shr_t msg)
+      : m_rawmsg(msg->charvec()), m_dt(msg->destType()), m_enqueueTime(std::chrono::steady_clock::now())
     {
-      m_msg = msg.moveToCharvec();
     }
-
-    explicit QueuedMsg(const Msg &msg)
-      : QueuedMsg(std::move(Msg(msg)))
-      {}
 
     [[nodiscard]] Msg::DestType destType() const { return m_dt; }
     [[nodiscard]] std::chrono::steady_clock::time_point enqueueTime() const { return m_enqueueTime;}
-    [[nodiscard]] const std::vector<char>& msg() const  { return m_msg; }
+    [[nodiscard]] const std::vector<char> &rawmsg() const;
 
   private:
-    std::vector<char> m_msg;
+    std::vector<char> m_rawmsg;
     Msg::DestType m_dt;
     std::chrono::steady_clock::time_point m_enqueueTime;
   };
@@ -90,10 +86,9 @@ public:
 
   [[nodiscard]] bool outQueueEmpty();
 
-  const uzel::Msg& msg1() const {return m_msg1;}
+  const uzel::Msg& msg1() const {return *m_msg1;}
   void start();
-  void putOutQueue(const uzel::Msg& msg);
-  void putOutQueue(uzel::Msg&& msg);
+  void putOutQueue(uzel::Msg::shr_t msg);
     // take over processing of the messages from another (old) session
   void takeOverMessages(session &os);
   void takeOverMessages(MsgQueue &oq);
@@ -130,7 +125,7 @@ private:
   std::array<char, max_length> m_data;
   uzel::InputProcessor m_processor;
   MsgQueue m_outQueue;
-  uzel::Msg m_msg1; // the very first message (used for auth)
+  uzel::Msg::shr_t m_msg1; // the very first message (used for auth)
   bool m_closeFlag{false};
   bool m_stopped{false};
   std::string m_reason{};

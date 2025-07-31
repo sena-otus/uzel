@@ -19,6 +19,7 @@ namespace uzel
   {
   public:
     using shr_t = std::shared_ptr<Msg>;
+    using shr_const_t = std::shared_ptr<const Msg>;
 
     enum class DestType
     {

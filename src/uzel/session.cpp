@@ -4,6 +4,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/log/trivial.hpp>
+#include <memory>
 #include <string>
 
 
@@ -15,13 +16,13 @@ namespace uzel
   session::session(tcp::socket socket, Direction direction, boost::asio::ip::address ip, std::string remoteHostName)
     : m_socket(std::move(socket)),
       m_direction(direction),
-      m_data{0}, m_msg1(uzel::Msg::ptree{}, ""),
+      m_data{0}, m_msg1(make_shared<Msg>(uzel::Msg::ptree{}, "")),
       m_remoteIp(std::move(ip)),
       m_remoteHostName(std::move(remoteHostName))
   {
     m_rejected_c   = m_processor.s_rejected.connect([&](){ stop();});
-    m_authorized_c = m_processor.s_auth    .connect([&](const uzel::Msg &msg){ m_msg1 = msg; s_auth(shared_from_this()); });
-    m_dispatch_c   = m_processor.s_dispatch.connect([&](uzel::Msg &msg){ s_dispatch(msg);});
+    m_authorized_c = m_processor.s_auth    .connect([&](const uzel::Msg::shr_t msg){ m_msg1 = msg; s_auth(shared_from_this()); });
+    m_dispatch_c   = m_processor.s_dispatch.connect([&](uzel::Msg::shr_t msg){ s_dispatch(msg);});
   }
 
 
@@ -40,7 +41,7 @@ void session::start()
   uzel::Msg::ptree body{};
   body.add("auth.pid", getpid());
 
-  putOutQueue(uzel::Msg(uzel::Addr(), std::move(body)));
+  putOutQueue(std::make_shared<Msg>(uzel::Addr(), std::move(body)));
   do_read();
 }
 
@@ -146,13 +147,13 @@ void session::do_read()
         m_outQueue.pop_front();
       } else {
         if(dropped>0) {
-          BOOST_LOG_TRIVIAL(warning) << "dropped " << dropped << " messages to '" << m_msg1.dest().node() << "' because timeout of "  << MessageTTL_sec << "sec exceeded";
+          BOOST_LOG_TRIVIAL(warning) << "dropped " << dropped << " messages to '" << m_msg1->dest().node() << "' because timeout of "  << MessageTTL_sec << "sec exceeded";
         }
         return false;
       }
     }
     if(dropped>0) {
-      BOOST_LOG_TRIVIAL(warning) << "dropped " << dropped << " messages to '" << m_msg1.dest().node() << "' because timeout of "  << MessageTTL_sec << "sec exceeded";
+      BOOST_LOG_TRIVIAL(warning) << "dropped " << dropped << " messages to '" << m_msg1->dest().node() << "' because timeout of "  << MessageTTL_sec << "sec exceeded";
     }
     return true;
   }
@@ -163,7 +164,7 @@ void session::do_write()
 {
   if(outQueueEmpty()) return;
   boost::asio::async_write(
-    m_socket, boost::asio::buffer(m_outQueue.front().msg()),
+    m_socket, boost::asio::buffer(m_outQueue.front().rawmsg()),
     [self = shared_from_this()](boost::system::error_code ec, std::size_t /*length*/)
       {
         if(ec) {
@@ -171,8 +172,8 @@ void session::do_write()
           self->s_send_error();
           self->stop();
        } else {
-          auto &msg = self->m_outQueue.front().msg();
-          BOOST_LOG_TRIVIAL(debug) << DBGOUT << "writing succeed " << std::string_view(msg.data(), msg.size());
+          const auto &rawmsg = self->m_outQueue.front().rawmsg();
+          BOOST_LOG_TRIVIAL(debug) << DBGOUT << "writing succeed " << std::string_view(rawmsg.data(), rawmsg.size());
           self->m_outQueue.pop_front();
           if(self->outQueueEmpty()) {
             if(self->m_closeFlag) {
@@ -187,24 +188,12 @@ void session::do_write()
 //NOLINTEND(misc-no-recursion)
 
 
-void session::putOutQueue(const uzel::Msg &msg)
+void session::putOutQueue(uzel::Msg::shr_t msg)
 {
-  BOOST_LOG_TRIVIAL(debug) << DBGOUT << " inserting2 message to '" << msg.dest().app() << "@" << msg.dest().node() << "' into the output queue";
+  BOOST_LOG_TRIVIAL(debug) << DBGOUT << " inserting message to '" << msg->dest().app() << "@" << msg->dest().node() << "' into the output queue";
   const bool wasEmpty = m_outQueue.empty();
-  m_outQueue.emplace_back(QueuedMsg(msg));
-  if(wasEmpty) {
-    do_write();
-  }
-}
-
-void session::putOutQueue(uzel::Msg &&msg)
-{
-  BOOST_LOG_TRIVIAL(debug) << DBGOUT << " inserting message to '" << msg.dest().app() << "@" << msg.dest().node() << "' into the output queue";
-  const bool wasEmpty = m_outQueue.empty();
-  {
-    m_outQueue.emplace_back(QueuedMsg(msg));
-    BOOST_LOG_TRIVIAL(debug) << DBGOUT << " inserted, new output queue size is: " << m_outQueue.size();
-  }
+  m_outQueue.emplace_back(msg);
+  BOOST_LOG_TRIVIAL(debug) << DBGOUT << " inserted, new output queue size is: " << m_outQueue.size();
   if(wasEmpty) {
     do_write();
   }
