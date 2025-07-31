@@ -40,7 +40,7 @@ void remote::addSession(session::shr_t ss)
         // but let's do it
       uzel::Msg::ptree body{};
       body.add("priority", uzel::Priority::high);
-      ss->putOutQueue(uzel::Msg(uzel::Addr(), std::move(body)));
+      ss->putOutQueue(std::make_shared<uzel::Msg>(uzel::Addr(), std::move(body)));
       ss->takeOverMessages(m_outHighQueue);
     } else if(!m_sessionL) {
       BOOST_LOG_TRIVIAL(debug) << "got low priority connection with '" << m_node
@@ -49,7 +49,7 @@ void remote::addSession(session::shr_t ss)
       m_sessionL = ss;
       uzel::Msg::ptree body{};
       body.add("priority", uzel::Priority::low);
-      ss->putOutQueue(uzel::Msg(uzel::Addr(), std::move(body)));
+      ss->putOutQueue(std::make_shared<uzel::Msg>(uzel::Addr(), std::move(body)));
       ss->takeOverMessages(m_outLowQueue);
     } else {
       BOOST_LOG_TRIVIAL(debug) << "got duplicated connection with '" << m_node
@@ -87,7 +87,7 @@ void remote::onSessionClosed(session::shr_t ss)
 }
 
 
-void remote::send(const uzel::Msg &msg)
+  void remote::send(uzel::Msg::shr_t msg)
 {
   if(!connected())
   {

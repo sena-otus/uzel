@@ -2,6 +2,7 @@
 #include "uzel/msg.h"
 #include "uzel/dbg.h"
 #include <boost/log/trivial.hpp>
+#include <memory>
 #include <uzel/netclient.h>
 
 #include <iostream>
@@ -25,9 +26,9 @@ public:
       sendMsg();});
   }
 
-  void dispatch(uzel::Msg &msg)
+  void dispatch(uzel::Msg::shr_t msg)
   {
-    BOOST_LOG_TRIVIAL(debug) << "Got message: " << msg.str();
+    BOOST_LOG_TRIVIAL(debug) << "Got message: " << msg->str();
   }
 
   void sendMsg()
@@ -38,7 +39,7 @@ public:
 
     uzel::Msg::ptree msgbody;
     msgbody.put("payload", "ping");
-    send(uzel::Msg(m_addrto, std::move(msgbody)));
+    send(std::make_shared<uzel::Msg>(m_addrto, std::move(msgbody)));
   }
 private:
   boost::asio::steady_timer m_sendTimer;

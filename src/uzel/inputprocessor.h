@@ -4,6 +4,7 @@
 #include "addr.h"
 #include "msg.h"
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/property_tree/ptree.hpp>
 #include <boost/signals2.hpp>
 #include <string_view>

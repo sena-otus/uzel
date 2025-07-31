@@ -32,13 +32,14 @@ namespace uzel
       /*** construct incoming message */
     explicit Msg(ptree &&header, ptree &&body);
       /** construct outgoing message */
-    Msg(const Addr &dest, Msg::ptree && body);
+    Msg(Addr dest, Msg::ptree && body);
       /** ctor forwarding message
        * used to forward incoming message
        * @param to where to forward
        * @param other original message
        **/
     Msg(const Addr &dest, Msg &&other);
+    Msg(const Addr &dest, const Msg &other);
     void addPayload();
     [[nodiscard]] DestType destType() const;
     [[nodiscard]] bool isBroadcast() const;

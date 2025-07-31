@@ -29,14 +29,14 @@ public:
 
 
   void auth(uzel::session::shr_t ss);
-  void dispatch(uzel::Msg &msg);
+  void dispatch(uzel::Msg::shr_t msg);
 private:
   void do_accept();
-  void serviceMsg(uzel::Msg &msg);
-  void localMsg(uzel::Msg &msg);
-  void remoteMsg(const uzel::Msg &msg);
-  void broadcastMsg(uzel::Msg &msg);
-  void localbroadcastMsg(uzel::Msg &msg);
+  void serviceMsg(uzel::Msg::shr_t msg);
+  void localMsg(uzel::Msg::shr_t msg);
+  void remoteMsg(uzel::Msg::shr_t msg);
+  void broadcastMsg(uzel::Msg::shr_t msg);
+  void localbroadcastMsg(uzel::Msg::shr_t msg);
   void connectResolved( boost::system::error_code ec,  boost::asio::ip::tcp::resolver::results_type rezit, const std::string &hname);
   void reconnectAfterDelay(const std::string &hname);
 //  void startResolving(const std::string &hname);

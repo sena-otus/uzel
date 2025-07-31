@@ -22,7 +22,7 @@ public:
   ~remote() = default;
 
   void addSession(session::shr_t);
-  void send(const uzel::Msg &msg);
+  void send(uzel::Msg::shr_t msg);
   [[nodiscard]] bool connected() const;
   [[nodiscard]] size_t sessionCount() const;
 private:

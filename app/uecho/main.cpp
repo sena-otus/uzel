@@ -18,11 +18,11 @@ public:
   {
   }
 
-  void dispatch(uzel::Msg &msg) override
+  void dispatch(uzel::Msg::shr_t msg) override
   {
-    BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "Got message: " << msg.str();
-    uzel::Msg responce(msg.from(), std::move(msg));
-    send(std::move(responce));
+    BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "Got message: " << msg->str();
+      // that will  destroy  msg!
+    send(std::make_shared<uzel::Msg>(msg->from(), std::move(*msg)));
   }
 private:
 

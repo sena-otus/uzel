@@ -58,13 +58,13 @@ void NetClient::connectResolved(const boost::system::error_code ec, const tcp::r
     auto unauth = std::make_shared<uzel::session>(std::move(sock), uzel::Direction::outgoing, rezit->endpoint().address(), rezit->host_name());
     unauth->s_connect_error.connect([&](const std::string &){ reconnectAfterDelay();});
     unauth->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
-    unauth->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
+    unauth->s_dispatch.connect([&](uzel::Msg::shr_t msg){ dispatch(msg);});
     unauth->startConnection(rezit);
   }
 }
 
 
-void NetClient::dispatch(uzel::Msg &msg)
+void NetClient::dispatch(uzel::Msg::shr_t msg)
 {
 }
 
@@ -89,7 +89,7 @@ void NetClient::auth(uzel::session::shr_t ss)
 }
 
 
-void NetClient::send(uzel::Msg &&msg)
+void NetClient::send(uzel::Msg::shr_t msg)
 {
-  m_locals["userver"]->putOutQueue(std::move(msg));
+  m_locals["userver"]->putOutQueue(msg);
 }

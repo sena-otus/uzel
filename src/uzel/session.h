@@ -34,7 +34,8 @@ namespace uzel
 
     [[nodiscard]] Msg::DestType destType() const { return m_dt; }
     [[nodiscard]] std::chrono::steady_clock::time_point enqueueTime() const { return m_enqueueTime;}
-    [[nodiscard]] const std::vector<char> &rawmsg() const;
+    [[nodiscard]] const std::vector<char> &rawmsg() const { return m_rawmsg;}
+
 
   private:
     std::vector<char> m_rawmsg;

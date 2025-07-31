@@ -43,7 +43,7 @@ void NetServer::onSessionCreated(uzel::session::shr_t newSession)
 
   newSession->s_closed.connect([&](uzel::session::shr_t ss){ onSessionClosed(ss);});
   newSession->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
-  newSession->s_dispatch.connect([&](uzel::Msg &msg){ dispatch(msg);});
+  newSession->s_dispatch.connect([&](uzel::Msg::shr_t msg){ dispatch(msg);});
 }
 
 
@@ -75,15 +75,15 @@ void NetServer::onSessionClosed(uzel::session::shr_t ss)
 }
 
 
-void NetServer::localMsg(uzel::Msg & msg)
+void NetServer::localMsg(uzel::Msg::shr_t msg)
 {
-  auto lit = m_locals.find(msg.dest().app());
+  auto lit = m_locals.find(msg->dest().app());
   if(lit != m_locals.end()) {
-    lit->second->putOutQueue(std::move(msg));
+    lit->second->putOutQueue(msg);
   }
 }
 
-void NetServer::localbroadcastMsg(uzel::Msg & msg)
+void NetServer::localbroadcastMsg(uzel::Msg::shr_t msg)
 {
   std::ranges::for_each(m_locals,
                         [&msg](auto &sp){
@@ -93,7 +93,7 @@ void NetServer::localbroadcastMsg(uzel::Msg & msg)
 }
 
 
-void NetServer::broadcastMsg(uzel::Msg &msg)
+void NetServer::broadcastMsg(uzel::Msg::shr_t msg)
 {
   std::ranges::for_each(m_nodeToSession,
            [&msg](auto &sp) { sp.second.send(msg); });
@@ -127,12 +127,12 @@ uzel::remote &NetServer::findAddRemote(const std::string &node)
 
 
 
-void NetServer::remoteMsg(const uzel::Msg &msg)
+void NetServer::remoteMsg(uzel::Msg::shr_t msg)
 {
     // first check if there are
     // special routing rules for that node
 
-  std::string target = msg.dest().node();
+  std::string target = msg->dest().node();
   auto viaNode = route(target);
 
   if(!viaNode)
@@ -146,14 +146,14 @@ void NetServer::remoteMsg(const uzel::Msg &msg)
 }
 
 
-void NetServer::serviceMsg(uzel::Msg &msg [[maybe_unused]])
+void NetServer::serviceMsg(uzel::Msg::shr_t msg [[maybe_unused]])
 {
   return;
 }
 
-void NetServer::dispatch(uzel::Msg &msg)
+void NetServer::dispatch(uzel::Msg::shr_t msg)
 {
-  switch(msg.destType())
+  switch(msg->destType())
   {
     case uzel::Msg::DestType::service:
       serviceMsg(msg);

@@ -29,7 +29,7 @@ namespace uzel {
     updateDest();
   }
 
-  Msg::Msg(const Addr &dest, Msg::ptree && body)
+  Msg::Msg(Addr dest, Msg::ptree && body)
     : m_destType{DestType::service}
   {
     setFromLocal();
@@ -44,6 +44,14 @@ namespace uzel {
     setFromLocal();
     setDest(dest);
   }
+
+  Msg::Msg(const Addr &dest, const Msg &other)
+    : Msg(other)
+  {
+    setFromLocal();
+    setDest(dest);
+  }
+
 
   void Msg::setDest(const Addr &dest) {
     auto realhname = dest.node();
