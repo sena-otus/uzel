@@ -90,6 +90,7 @@ void session::takeOverMessages(session &os)
 
 void session::takeOverMessages(MsgQueue &oq)
 {
+  bool wasEmpty = outQueueEmpty();
   size_t count{0};
   while(!oq.empty())
   {
@@ -102,13 +103,12 @@ void session::takeOverMessages(MsgQueue &oq)
     count++;
   }
 
-  if(count > 0)
-  {
+  if(count > 0) {
     BOOST_LOG_TRIVIAL(debug) << DBGOUT << " queue " << &m_outQueue <<  " take over "  << count << " messsages from " << &oq;
+    if(wasEmpty) {
+      do_write();
+    }
   }
-    // assume there is no write in progress when it is called... why?
-    // or use if(wasempty)?
-  do_write();
 }
 
 
@@ -177,6 +177,7 @@ void session::do_write()
 {
   deleteOld();
   if(outQueueEmpty()) return;
+  BOOST_LOG_TRIVIAL(debug) << DBGOUT << " before write queue "  << &(m_outQueue) << " size: " << m_outQueue.size();
   boost::asio::async_write(
     m_socket, boost::asio::buffer(m_outQueue.front().rawmsg()),
     [self = shared_from_this()](boost::system::error_code ec, std::size_t /*length*/)
@@ -186,7 +187,7 @@ void session::do_write()
           self->s_send_error();
           self->stop();
        } else {
-          BOOST_LOG_TRIVIAL(debug) << DBGOUT << " queue "  << &(self->m_outQueue) << " size: " << self->m_outQueue.size();
+          BOOST_LOG_TRIVIAL(debug) << DBGOUT << " after write queue "  << &(self->m_outQueue) << " size: " << self->m_outQueue.size();
           const auto &rawmsg = self->m_outQueue.front().rawmsg();
           BOOST_LOG_TRIVIAL(debug) << DBGOUT << "writing succeed " << std::string_view(rawmsg.data(), rawmsg.size());
           self->m_outQueue.pop_front();
