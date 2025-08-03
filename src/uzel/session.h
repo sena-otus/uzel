@@ -12,6 +12,7 @@
 #include <boost/asio.hpp>
 
 #include <charconv>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <deque>
@@ -200,7 +201,7 @@ struct BEnumIntTranslator {
   }
 
   boost::optional<internal_type> put_value(const external_type& value) {
-    return boost::optional<internal_type>(value._to_integral());
+    return boost::optional<internal_type>(std::to_string(value._to_integral()));
   }
 };
 
