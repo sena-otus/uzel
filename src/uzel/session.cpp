@@ -142,7 +142,8 @@ void session::do_read()
     auto now = std::chrono::steady_clock::now();
     int dropped {0};
     while(!m_outQueue.empty()) {
-      if(now - m_outQueue.front().enqueueTime() > std::chrono::seconds(MessageTTL_sec)) {
+      auto etime = m_outQueue.front().enqueueTime();
+      if(now - etime > std::chrono::seconds(MessageTTL_sec)) {
         ++dropped;
         m_outQueue.pop_front();
       } else {
