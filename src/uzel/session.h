@@ -20,8 +20,8 @@
 
 namespace uzel
 {
-  BETTER_ENUM(Priority, int8_t, undefined=-127, low = 0, high = 10); //NOLINT
-  BETTER_ENUM(Direction, int8_t, incoming = 0, outgoing); //NOLINT
+  BETTER_ENUM(Priority, uint8_t, undefined=255, low = 0, high = 10); //NOLINT
+  BETTER_ENUM(Direction, uint8_t, incoming = 0, outgoing); //NOLINT
 
   inline const int64_t MessageTTL_sec = 60;
 
@@ -158,4 +158,22 @@ private:
                      std::unordered_set<uzel::session::shr_t>,
                      AddressHash, AddressEqual>;
 
+}
+
+inline std::ostream& operator<<(std::ostream& os, const uzel::Priority pr)
+{
+  return os << static_cast<int>(pr._to_integral());
+}
+
+inline std::istream& operator>>(std::istream& is, uzel::Priority& pr)
+{
+  int iPriority{0};
+  if (!(is >> iPriority)) return is;
+  auto rez = uzel::Priority::_from_integral_nothrow(iPriority);
+  if(!rez) {
+    is.setstate(std::ios::failbit); // invalid token
+  } else {
+    pr = *rez;
+  }
+  return is;
 }
