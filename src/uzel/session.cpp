@@ -5,6 +5,7 @@
 #include <boost/asio.hpp>
 #include <boost/log/trivial.hpp>
 #include <memory>
+#include <stdexcept>
 #include <string>
 
 
@@ -89,7 +90,7 @@ void session::takeOverMessages(session &os)
 
 void session::takeOverMessages(MsgQueue &oq)
 {
-  BOOST_LOG_TRIVIAL(debug) << DBGOUT << "taking over "  << oq.size() << " messsages";
+  size_t count{0};
   while(!oq.empty())
   {
     if(oq.front().destType() == Msg::DestType::service) {
@@ -98,6 +99,12 @@ void session::takeOverMessages(MsgQueue &oq)
 
     m_outQueue.emplace_back(std::move(oq.front()));
     oq.pop_front();
+    count++;
+  }
+
+  if(count > 0)
+  {
+    BOOST_LOG_TRIVIAL(debug) << DBGOUT << " queue " << &m_outQueue <<  " take over "  << count << " messsages from " << &oq;
   }
     // assume there is no write in progress when it is called... why?
     // or use if(wasempty)?
@@ -137,7 +144,12 @@ void session::do_read()
       });
 }
 
-  bool session::outQueueEmpty()
+  bool session::outQueueEmpty() const
+  {
+    return m_outQueue.empty();
+  }
+
+  void session::deleteOld()
   {
     auto now = std::chrono::steady_clock::now();
     int dropped {0};
@@ -150,19 +162,20 @@ void session::do_read()
         if(dropped>0) {
           BOOST_LOG_TRIVIAL(warning) << "dropped " << dropped << " messages to '" << m_msg1->dest().node() << "' because timeout of "  << MessageTTL_sec << "sec exceeded";
         }
-        return false;
+        return /*false*/;
       }
     }
     if(dropped>0) {
       BOOST_LOG_TRIVIAL(warning) << "dropped " << dropped << " messages to '" << m_msg1->dest().node() << "' because timeout of "  << MessageTTL_sec << "sec exceeded";
     }
-    return true;
+      // return true;
   }
 
 
 //NOLINTBEGIN(misc-no-recursion)
 void session::do_write()
 {
+  deleteOld();
   if(outQueueEmpty()) return;
   boost::asio::async_write(
     m_socket, boost::asio::buffer(m_outQueue.front().rawmsg()),
@@ -173,9 +186,11 @@ void session::do_write()
           self->s_send_error();
           self->stop();
        } else {
+          BOOST_LOG_TRIVIAL(debug) << DBGOUT << " queue "  << &(self->m_outQueue) << " size: " << self->m_outQueue.size();
           const auto &rawmsg = self->m_outQueue.front().rawmsg();
           BOOST_LOG_TRIVIAL(debug) << DBGOUT << "writing succeed " << std::string_view(rawmsg.data(), rawmsg.size());
           self->m_outQueue.pop_front();
+          self->deleteOld();
           if(self->outQueueEmpty()) {
             if(self->m_closeFlag) {
               self->sendByeAndClose();
@@ -191,7 +206,7 @@ void session::do_write()
 
 void session::putOutQueue(uzel::Msg::shr_t msg)
 {
-  BOOST_LOG_TRIVIAL(debug) << DBGOUT << " inserting message to '" << msg->dest().app() << "@" << msg->dest().node() << "' into the output queue";
+  BOOST_LOG_TRIVIAL(debug) << DBGOUT << " inserting message to '" << msg->dest().app() << "@" << msg->dest().node() << "' into the output queue " << &m_outQueue;
   const bool wasEmpty = m_outQueue.empty();
   m_outQueue.emplace_back(msg);
   BOOST_LOG_TRIVIAL(debug) << DBGOUT << " inserted, new output queue size is: " << m_outQueue.size();

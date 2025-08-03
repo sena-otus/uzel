@@ -85,7 +85,7 @@ public:
   Priority priority() const { return m_priority;}
   void setPriority(Priority p) { m_priority = p;}
 
-  [[nodiscard]] bool outQueueEmpty();
+  [[nodiscard]] bool outQueueEmpty() const;
 
   const uzel::Msg& msg1() const {return *m_msg1;}
   void start();
@@ -105,6 +105,7 @@ public:
   [[nodiscard]] Direction direction() const {return m_direction;}
 
 private:
+  void deleteOld();
   void do_read();
   void do_write();
   void sendByeAndClose();
