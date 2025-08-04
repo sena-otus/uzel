@@ -16,7 +16,6 @@ remote::remote(std::string nodename)
 void remote::addSession(session::shr_t ss)
 {
   ss->s_closed.connect([&](session::shr_t ss) { onSessionClosed(ss);});
-  ss->s_closed.connect([&](session::shr_t ss) { onSessionClosed(ss);});
     // who is the boss?
   if(ss->msg1().from().node() > uzel::UConfigS::getUConfig().nodeName()) {
       // he wins
