@@ -12,6 +12,7 @@
 #include <boost/asio.hpp>
 
 #include <charconv>
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -22,7 +23,8 @@
 
 namespace uzel
 {
-  BETTER_ENUM(Priority, uint8_t, undefined=255, low = 0, high = 10); //NOLINT
+    // uint8_t does not work well with boost::ptree...
+  BETTER_ENUM(Priority, uint16_t, undefined=255, low = 0, high = 10); //NOLINT
   BETTER_ENUM(Direction, uint8_t, incoming = 0, outgoing); //NOLINT
 
   inline const int64_t MessageTTL_sec = 60;
@@ -209,23 +211,19 @@ struct BEnumIntTranslator {
 using PriorityTranslator = BEnumIntTranslator<uzel::Priority>;
 
 // Register translators
-namespace boost {
-  namespace property_tree {
-    template<typename Ch, typename Traits, typename Alloc>
-    struct translator_between<std::basic_string<Ch, Traits, Alloc>, uzel::Priority> {
-      using type = PriorityTranslator;
-    };
-  }
+namespace boost::property_tree {
+  template<typename Ch, typename Traits, typename Alloc>
+  struct translator_between<std::basic_string<Ch, Traits, Alloc>, uzel::Priority>
+  {
+    using type = PriorityTranslator;
+  };
 }
 
-namespace boost { namespace property_tree {
-
-template<>
-struct translator_between<std::string, uzel::Priority>
-{
+namespace boost::property_tree {
+  template<>
+  struct translator_between<std::string, uzel::Priority>
+  {
     using type = PriorityTranslator;
-};
+  };
 
-}} // namespace boost::property_tree
-
-
+} // namespace boost::property_tree
