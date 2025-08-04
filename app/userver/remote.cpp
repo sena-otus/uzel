@@ -39,7 +39,7 @@ void remote::addSession(session::shr_t ss)
         // it is not necessary both sides to have same priority on the channel
         // but let's do it
       uzel::Msg::ptree body{};
-      body.add("priority", uzel::Priority::high);
+      body.add("priority", static_cast<uzel::Priority>(uzel::Priority::high));
       ss->putOutQueue(std::make_shared<uzel::Msg>(uzel::Addr(), std::move(body)));
       ss->takeOverMessages(m_outHighQueue);
     } else if(!m_sessionL) {
@@ -48,7 +48,7 @@ void remote::addSession(session::shr_t ss)
       ss->setPriority(uzel::Priority::low);
       m_sessionL = ss;
       uzel::Msg::ptree body{};
-      body.add("priority", uzel::Priority::low);
+      body.add("priority", static_cast<uzel::Priority>(uzel::Priority::low));
       ss->putOutQueue(std::make_shared<uzel::Msg>(uzel::Addr(), std::move(body)));
       ss->takeOverMessages(m_outLowQueue);
     } else {

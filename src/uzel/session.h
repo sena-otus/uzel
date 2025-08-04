@@ -217,3 +217,15 @@ namespace boost {
     };
   }
 }
+
+namespace boost { namespace property_tree {
+
+template<>
+struct translator_between<std::string, uzel::Priority>
+{
+    using type = PriorityTranslator;
+};
+
+}} // namespace boost::property_tree
+
+
