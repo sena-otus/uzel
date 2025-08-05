@@ -18,9 +18,9 @@ void remote::addSession(session::shr_t ss)
   ss->s_closed.connect([&](session::shr_t ss) { onSessionClosed(ss);});
     // who is the boss?
   if(ss->msg1().from().node() > uzel::UConfigS::getUConfig().nodeName()) {
-      // he wins
-      // so wait for his decision (remote message), it will tell which
-      // priority or close it
+    BOOST_LOG_TRIVIAL(debug) << "he is the boss, because '"
+                             << uzel::UConfigS::getUConfig().nodeName()
+                             << "' < '"<< ss->msg1().from().node() << "'";
     m_sessionWaitForRemote.emplace(ss);
     BOOST_LOG_TRIVIAL(debug) << "there are now " << m_sessionWaitForRemote.size()
                              << " session(s) for " << m_node << "waiting for decision";
@@ -28,7 +28,9 @@ void remote::addSession(session::shr_t ss)
       //    auto iprio = ss->msg1().pbody().get<int8_t>("priority");
       //    ss->setPriority(uzel::Priority::_from_integral(iprio));
   } else {
-      // i win, so i decide on priorities and on fate of the session
+    BOOST_LOG_TRIVIAL(debug) << "we are the boss, because '"
+                             << uzel::UConfigS::getUConfig().nodeName()
+                             << "' > '"<< ss->msg1().from().node() << "'";
     if(!m_sessionH)
     {
       BOOST_LOG_TRIVIAL(debug) << "got high priority connection with '" << m_node
