@@ -39,7 +39,7 @@ void remote::addSession(session::shr_t ss)
         // but let's do it
       uzel::Msg::ptree body{};
       body.add("priority", static_cast<uzel::Priority>(uzel::Priority::high));
-      ss->putOutQueue(std::make_shared<uzel::Msg>(uzel::Addr(), std::move(body)));
+      ss->putOutQueue(std::make_shared<uzel::Msg>(uzel::Addr(), "priority", std::move(body)));
       ss->takeOverMessages(m_outHighQueue);
     } else if(!m_sessionL) {
       BOOST_LOG_TRIVIAL(debug) << "got low priority connection with '" << m_node
@@ -48,7 +48,7 @@ void remote::addSession(session::shr_t ss)
       m_sessionL = ss;
       uzel::Msg::ptree body{};
       body.add("priority", static_cast<uzel::Priority>(uzel::Priority::low));
-      ss->putOutQueue(std::make_shared<uzel::Msg>(uzel::Addr(), std::move(body)));
+      ss->putOutQueue(std::make_shared<uzel::Msg>(uzel::Addr(), "priority", std::move(body)));
       ss->takeOverMessages(m_outLowQueue);
     } else {
       BOOST_LOG_TRIVIAL(debug) << "got duplicated connection with '" << m_node
@@ -57,6 +57,41 @@ void remote::addSession(session::shr_t ss)
     }
   }
 }
+
+  void remote::handlePriorityMsg(Msg::shr_t msg, session::shr_t ss)
+  {
+    m_sessionWaitForRemote.erase(ss);
+    auto prio = msg->pbody().get<Priority>("priority", Priority::undefined);
+    switch(prio)
+    {
+      case +Priority::low:
+      {
+        ss->setPriority(Priority::low);
+        auto sessionToClose = m_sessionL;
+        m_sessionL = ss;
+        if(sessionToClose) {
+          sessionToClose->gracefullClose("overtaken by new connection");
+        }
+        break;
+      }
+      case +Priority::high:
+      {
+        ss->setPriority(Priority::high);
+        auto sessionToClose = m_sessionH;
+        m_sessionH = ss;
+        if(sessionToClose) {
+          sessionToClose->gracefullClose("overtaken by new connection");
+        }
+        break;
+      }
+      case +Priority::undefined:
+      {
+        ss->gracefullClose("got undefined priority from remote");
+        break;
+      }
+    }
+  }
+
 
 bool remote::connected() const
 {

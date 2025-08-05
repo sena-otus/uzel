@@ -29,13 +29,14 @@ namespace uzel {
     updateDest();
   }
 
-  Msg::Msg(Addr dest, Msg::ptree && body)
+  Msg::Msg(const Addr &dest, const std::string &cname, Msg::ptree && body)
     : m_destType{DestType::service}
   {
     setFromLocal();
     m_body = Msg::ptree{};
     std::get<Msg::ptree>(m_body).swap(body);
     setDest(dest);
+    setCname(cname);
   }
 
   Msg::Msg(const Addr &dest, Msg &&other)
@@ -65,6 +66,17 @@ namespace uzel {
     }
     updateDest();
   }
+
+  void Msg::setCname(const std::string &cname)
+  {
+    m_header.put("cname", cname);
+  }
+
+  const std::string &Msg::cname() const
+  {
+    return m_header.get_child("cname").data();
+  }
+
 
   void Msg::setFromLocal()
   {

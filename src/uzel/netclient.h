@@ -27,7 +27,7 @@ public:
   virtual ~NetClient() = default;
 
 
-  virtual void dispatch(uzel::Msg::shr_t msg) = 0;
+  virtual void dispatch(uzel::Msg::shr_t msg, uzel::session::shr_t) = 0;
   void send(uzel::Msg::shr_t msg);
   boost::signals2::signal<void ()> s_authSuccess;
 

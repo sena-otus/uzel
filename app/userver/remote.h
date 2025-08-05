@@ -25,6 +25,7 @@ public:
   void send(uzel::Msg::shr_t msg);
   [[nodiscard]] bool connected() const;
   [[nodiscard]] size_t sessionCount() const;
+  void handlePriorityMsg(uzel::Msg::shr_t msg, uzel::session::shr_t ss);
 private:
   explicit remote(std::string &&nodeName);
 

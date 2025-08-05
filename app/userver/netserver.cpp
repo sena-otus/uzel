@@ -43,7 +43,7 @@ void NetServer::onSessionCreated(uzel::session::shr_t newSession)
 
   newSession->s_closed.connect([&](uzel::session::shr_t ss){ onSessionClosed(ss);});
   newSession->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
-  newSession->s_dispatch.connect([&](uzel::Msg::shr_t msg){ dispatch(msg);});
+  newSession->s_dispatch.connect([&](uzel::Msg::shr_t msg, uzel::session::shr_t ss){ dispatch(msg,ss);});
 }
 
 
@@ -145,18 +145,29 @@ void NetServer::remoteMsg(uzel::Msg::shr_t msg)
   remote.send(msg);
 }
 
-
-void NetServer::serviceMsg(uzel::Msg::shr_t msg [[maybe_unused]])
+void NetServer::handlePriorityMsg(uzel::Msg::shr_t msg, uzel::session::shr_t ss)
 {
-  return;
+  auto remit = m_nodeToSession.find(ss->remoteNode());
+  if(remit == m_nodeToSession.end()) {
+    BOOST_LOG_TRIVIAL(error) << "Can not find remote for the node '" << ss->remoteNode() << "', something is really bad";
+    return;
+  }
+    // TODO: emit s_dispatch() signal directly from session? Then connect in remote to it!
+  remit->second.handlePriorityMsg(msg, ss);
 }
 
-void NetServer::dispatch(uzel::Msg::shr_t msg)
+
+void NetServer::serviceMsg(uzel::Msg::shr_t msg, uzel::session::shr_t ss)
+{
+  m_dispatcher.dispatch(*msg, ss);
+}
+
+void NetServer::dispatch(uzel::Msg::shr_t msg, uzel::session::shr_t ss)
 {
   switch(msg->destType())
   {
     case uzel::Msg::DestType::service:
-      serviceMsg(msg);
+      serviceMsg(msg, ss);
       break;
     case uzel::Msg::DestType::local:
       localMsg(msg);

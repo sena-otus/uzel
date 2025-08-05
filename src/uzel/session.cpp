@@ -23,7 +23,7 @@ namespace uzel
   {
     m_rejected_c   = m_processor.s_rejected.connect([&](){ stop();});
     m_authorized_c = m_processor.s_auth    .connect([&](const uzel::Msg::shr_t msg){ m_msg1 = msg; s_auth(shared_from_this()); });
-    m_dispatch_c   = m_processor.s_dispatch.connect([&](uzel::Msg::shr_t msg){ s_dispatch(msg);});
+    m_dispatch_c   = m_processor.s_dispatch.connect([&](uzel::Msg::shr_t msg){ s_dispatch(msg, shared_from_this());});
   }
 
 
@@ -42,7 +42,7 @@ void session::start()
   uzel::Msg::ptree body{};
   body.add("auth.pid", getpid());
 
-  putOutQueue(std::make_shared<Msg>(uzel::Addr(), std::move(body)));
+  putOutQueue(std::make_shared<Msg>(uzel::Addr(), "auth", std::move(body)));
   do_read();
 }
 
@@ -73,7 +73,7 @@ void session::sendByeAndClose()
 {
   uzel::Msg::ptree body{};
   body.add("bye", m_reason);
-  std::string &&byeStr = uzel::Msg(uzel::Addr(), std::move(body)).move_tostr();
+  std::string &&byeStr = uzel::Msg(uzel::Addr(), "bye", std::move(body)).move_tostr();
   boost::asio::async_write(m_socket, boost::asio::buffer(byeStr),
                            [self = shared_from_this()](boost::system::error_code, std::size_t) {
                              self->stop();
@@ -132,16 +132,20 @@ void session::do_read()
     boost::asio::buffer(m_data, max_length),
     [self = shared_from_this()](boost::system::error_code ec, std::size_t length)
       {
-        if (!ec) {
-          if(self->m_processor.processNewInput(std::string_view(self->m_data.data(), length))) {
-            self->do_read();
-          } else {
-            BOOST_LOG_TRIVIAL(error) << " error reading from socket: " << ec.message();
-            self->s_recv_error();
-            self->stop();
-          }
+        if(ec) {
+          BOOST_LOG_TRIVIAL(error) << "error reading from socket: " << ec.message();
+          self->s_recv_error();
+          self->stop();
+          return;
         }
-      });
+        if(!self->m_processor.processNewInput(std::string_view(self->m_data.data(), length))) {
+          BOOST_LOG_TRIVIAL(error) << "error parsing stream from remote: (implement error message)";
+          self->s_recv_error();
+          self->stop();
+          return;
+        }
+        self->do_read();
+     });
 }
 
   bool session::outQueueEmpty() const
@@ -192,7 +196,10 @@ void session::do_write()
           BOOST_LOG_TRIVIAL(debug) << DBGOUT << "writing succeed " << std::string_view(rawmsg.data(), rawmsg.size());
           self->m_outQueue.pop_front();
           self->deleteOld();
-          if(self->outQueueEmpty()) {
+            // do not wait until everything from outQueue will be sent and queue will become empty,
+            // messages from queue will be taken over by the next session
+            // if(self->outQueueEmpty())
+          {
             if(self->m_closeFlag) {
               self->sendByeAndClose();
             }

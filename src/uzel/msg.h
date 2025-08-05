@@ -32,7 +32,7 @@ namespace uzel
       /*** construct incoming message */
     explicit Msg(ptree &&header, ptree &&body);
       /** construct outgoing message */
-    Msg(Addr dest, Msg::ptree && body);
+    Msg(const Addr &dest, const std::string &cname, Msg::ptree && body);
       /** ctor forwarding message
        * used to forward incoming message
        * @param to where to forward
@@ -40,7 +40,7 @@ namespace uzel
        **/
     Msg(const Addr &dest, Msg &&other);
     Msg(const Addr &dest, const Msg &other);
-    void addPayload();
+      // void addPayload();
     [[nodiscard]] DestType destType() const;
     [[nodiscard]] bool isBroadcast() const;
     [[nodiscard]] bool isLocal() const;
@@ -56,8 +56,11 @@ namespace uzel
     [[nodiscard]] const ptree& header() const;
       /** that will parse the body if needed, may throw */
     [[nodiscard]] const ptree& pbody() const;
+      /** throws if there is no cname in header */
+    [[nodiscard]] const std::string &cname() const;
   private:
     void setDest(const Addr &dest);
+    void setCname(const std::string &cname);
     void updateDest();
     void updateFrom();
     void setFromLocal();

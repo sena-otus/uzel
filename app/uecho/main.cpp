@@ -1,4 +1,5 @@
 #include "uzel/dbg.h"
+#include "uzel/session.h"
 #include <boost/log/trivial.hpp>
 #include <uzel/netclient.h>
 
@@ -18,7 +19,7 @@ public:
   {
   }
 
-  void dispatch(uzel::Msg::shr_t msg) override
+  void dispatch(uzel::Msg::shr_t msg, uzel::session::shr_t ss) override
   {
     BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "Got message: " << msg->str();
       // that will  destroy  msg!
