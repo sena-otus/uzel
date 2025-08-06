@@ -16,6 +16,13 @@ remote::remote(std::string nodename)
 void remote::addSession(session::shr_t ss)
 {
   ss->s_closed.connect([&](session::shr_t ss) { onSessionClosed(ss);});
+
+  ss->s_dispatch.connect([this](uzel::Msg::shr_t msg, uzel::session::shr_t ss){
+    if(msg->cname() == "priority") {
+      handlePriorityMsg(msg, ss);
+    }
+  });
+
     // who is the boss?
   if(ss->msg1().from().node() > uzel::UConfigS::getUConfig().nodeName()) {
     BOOST_LOG_TRIVIAL(debug) << "he is the boss, because '"
@@ -23,7 +30,7 @@ void remote::addSession(session::shr_t ss)
                              << "' < '"<< ss->msg1().from().node() << "'";
     m_sessionWaitForRemote.emplace(ss);
     BOOST_LOG_TRIVIAL(debug) << "there are now " << m_sessionWaitForRemote.size()
-                             << " session(s) for " << m_node << "waiting for decision";
+                             << " session(s) for " << m_node << " waiting for decision";
 
       //    auto iprio = ss->msg1().pbody().get<int8_t>("priority");
       //    ss->setPriority(uzel::Priority::_from_integral(iprio));
