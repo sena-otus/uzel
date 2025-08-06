@@ -14,8 +14,8 @@ namespace uzel
        * @param fulladdr <appname>[@<nodename>]
        */
     explicit Addr(const std::string &fulladdr);
-    [[nodiscard]] std::string app() const {return m_appname;}
-    [[nodiscard]] std::string node() const {return m_nodename;}
+    [[nodiscard]] const std::string& app() const {return m_appname;}
+    [[nodiscard]] const std::string& node() const {return m_nodename;}
   private:
     Addr(const std::string &fulladdr, size_t atpos);
     std::string m_appname;
