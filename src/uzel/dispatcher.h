@@ -5,13 +5,10 @@
 
 namespace uzel {
 
-  class Dispatcher {
+  class MsgDispatcher {
   public:
     void registerHandler(const std::string& cname, std::function<void(const Msg&)> handler) {
       m_handlers[cname] = std::move(handler);
-    }
-    void registerHandler(const std::string& cname, std::function<void(const Msg&, session::shr_t ss)> handler) {
-      m_serviceHandlers[cname] = std::move(handler);
     }
 
     void dispatch(const Msg& msg) const {
@@ -19,6 +16,16 @@ namespace uzel {
       if (it != m_handlers.end()) {
         it->second(msg);
       }
+    }
+
+  private:
+    std::unordered_map<std::string, std::function<void(const Msg&)>> m_handlers;
+  };
+
+  class SessionMsgDispatcher {
+  public:
+    void registerHandler(const std::string& cname, std::function<void(const Msg&, session::shr_t ss)> handler) {
+      m_serviceHandlers[cname] = std::move(handler);
     }
 
     void dispatch(const Msg& msg, session::shr_t ss) const {
@@ -29,7 +36,6 @@ namespace uzel {
     }
 
   private:
-    std::unordered_map<std::string, std::function<void(const Msg&)>> m_handlers;
     std::unordered_map<std::string, std::function<void(const Msg&, session::shr_t ss)>> m_serviceHandlers;
   };
 
