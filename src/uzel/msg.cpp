@@ -147,12 +147,12 @@ namespace uzel {
     return m_header;
   }
 
-  Addr Msg::dest() const
+  const Addr& Msg::dest() const
   {
     return m_dest;
   }
 
-  Addr Msg::from() const
+  const Addr& Msg::from() const
   {
     return m_from;
   }

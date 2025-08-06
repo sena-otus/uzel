@@ -51,8 +51,8 @@ namespace uzel
     [[nodiscard]] std::string move_tostr();
     [[nodiscard]] std::vector<char> moveToCharvec();
     [[nodiscard]] std::vector<char> charvec() const;
-    [[nodiscard]] Addr from() const;
-    [[nodiscard]] Addr dest() const;
+    [[nodiscard]] const Addr& from() const;
+    [[nodiscard]] const Addr& dest() const;
     [[nodiscard]] const ptree& header() const;
       /** that will parse the body if needed, may throw */
     [[nodiscard]] const ptree& pbody() const;
