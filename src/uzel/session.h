@@ -101,17 +101,19 @@ public:
   const boost::asio::ip::address& remoteIp() const{ return m_remoteIp;}
   void setRemoteHostName(const std::string &hname) {m_remoteHostName = hname;}
   const std::string& remoteHostName() const{ return m_remoteHostName;}
-  void setRemoteNode(const std::string &node) { m_remoteNode = node;}
-  const std::string& remoteNode() const{ return m_remoteNode;}
-  [[nodiscard]] bool authenticated() const { return !m_remoteNode.empty();}
+  const std::string& remoteNode() const{ static std::string emptyString; return m_msg1 ? m_msg1->from().node() : emptyString ;}
+  [[nodiscard]] bool authenticated() const { return m_msg1 != nullptr;}
 
 
   [[nodiscard]] Direction direction() const {return m_direction;}
+
+  void processMsg(Msg::shr_t msg);
 
 private:
   void deleteOld();
   void do_read();
   void do_write();
+  bool authenticate(uzel::Msg::shr_t msg);
   void sendByeAndClose();
     /**
      *  shutdown socket and release all related resources, emits signal
@@ -131,18 +133,12 @@ private:
   std::array<char, max_length> m_data;
   uzel::InputProcessor m_processor;
   MsgQueue m_outQueue;
-  uzel::Msg::shr_t m_msg1; // the very first message (used for auth)
+  uzel::Msg::shr_t m_msg1; // the very first message is set only after authentication
   bool m_closeFlag{false};
   bool m_stopped{false};
   std::string m_reason{};
   std::string m_remoteHostName{}; //!< is set only if Direction::outgoing
-  std::string m_remoteNode{}; //!< is set only after authorization
   boost::asio::ip::address m_remoteIp{};
-  boost::signals2::connection m_rejected_c;
-  boost::signals2::connection m_authorized_c;
-  boost::signals2::connection m_dispatch_c;
-//  boost::signals2::connection m_send_error_c;
-//  boost::signals2::connection m_recv_error_c;
 };
 
   struct AddressHash {

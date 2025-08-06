@@ -21,21 +21,68 @@ namespace uzel
       m_remoteIp(std::move(ip)),
       m_remoteHostName(std::move(remoteHostName))
   {
-    m_rejected_c   = m_processor.s_rejected.connect([&](){ stop();});
-    m_authorized_c = m_processor.s_auth    .connect([&](const uzel::Msg::shr_t msg){ m_msg1 = msg; s_auth(shared_from_this()); });
-    m_dispatch_c   = m_processor.s_dispatch.connect([&](uzel::Msg::shr_t msg){ s_dispatch(msg, shared_from_this());});
   }
-
 
 session::~session()
 {
-  m_rejected_c.disconnect();
-  m_authorized_c.disconnect();
-  m_dispatch_c.disconnect();
-
     // do not call stop() from destructor, it uses shared_from_this()!
   shutdown();
 }
+
+
+  bool session::authenticate(uzel::Msg::shr_t msg)
+  {
+    auto app = msg->from().app();
+    auto node = msg->from().node();
+    if(app.empty() || node.empty()) {
+      BOOST_LOG_TRIVIAL(error) << "no source appname or nodename in first message - refuse connection";
+      return false;
+    }
+    bool isLocal = UConfigS::getUConfig().isLocalNode(node);
+
+    if(UConfigS::getUConfig().appName() == "userver")
+    {
+      if(isLocal) {
+        if(app == "userver") {
+          BOOST_LOG_TRIVIAL(error) << "refuse loop connection userver@" << node << "<->userver@" << node;
+          return false;
+        }
+      } else { // remote
+        if(app != "userver") {
+          BOOST_LOG_TRIVIAL(error) << "refuse remote connection to userver from non-userver";
+          return false;
+        }
+      }
+    } else { //  normal app
+      if(!isLocal) {
+        BOOST_LOG_TRIVIAL(error) << "refuse remote connecting to " << app << "@" << node;
+        return false;
+      }
+      if(app != "userver") {
+        BOOST_LOG_TRIVIAL(error) << "refuse connecting to " << app << "@" << node;
+        return false;
+      }
+    }
+    m_msg1 = msg;
+    BOOST_LOG_TRIVIAL(info) << "authenticated "<< (isLocal ? "local" : "remote")
+                            << " connection from " << m_msg1->from().app() << "@" << m_msg1->from().node();
+    return true;
+  }
+
+
+  void session::processMsg(Msg::shr_t msg)
+  {
+    if(!authenticated()) {
+      if(!authenticate(msg)) {
+        gracefullClose("authentication failed");
+          // or stop();?
+        return;
+      }
+      s_auth(shared_from_this());
+    }
+    s_dispatch(msg, shared_from_this());
+  }
+
 
 void session::start()
 {
@@ -138,7 +185,7 @@ void session::do_read()
           self->stop();
           return;
         }
-        if(!self->m_processor.processNewInput(std::string_view(self->m_data.data(), length))) {
+        if(!self->m_processor.processNewInput(std::string_view(self->m_data.data(), length), *self)) {
           BOOST_LOG_TRIVIAL(error) << "error parsing stream from remote: (implement error message)";
           self->s_recv_error();
           self->stop();

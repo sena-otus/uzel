@@ -12,6 +12,7 @@
 
 namespace uzel
 {
+  class session;
 
     /**
      * InputProcessor performes initial parsing of incoming messages
@@ -32,19 +33,16 @@ namespace uzel
   {
   public:
       /** process new input string */
-    bool processNewInput(std::string_view input);
-    void processMsg(Msg::shr_t msg);
-    [[nodiscard]] bool auth() const;
-    bool  auth(Msg::shr_t msg);
+    bool processNewInput(std::string_view input, session &ss);
 
     // NOLINTBEGIN(misc-non-private-member-variables-in-classes,cppcoreguidelines-non-private-member-variables-in-classes)
-      /** signal fired if authentication failed */
-    boost::signals2::signal<void ()> s_rejected;
-      /** signal fired on successful authentication */
-    boost::signals2::signal<void (Msg::shr_t msg1)> s_auth;
-      /** signal fired if there is a message to dispatch
-       * @param msg message to process */
-    boost::signals2::signal<void (Msg::shr_t msg)> s_dispatch;
+    //   /** signal fired if authentication failed */
+    // boost::signals2::signal<void ()> s_rejected;
+    //   /** signal fired on successful authentication */
+    // boost::signals2::signal<void (Msg::shr_t msg1)> s_auth;
+    //   /** signal fired if there is a message to dispatch
+    //    * @param msg message to process */
+    // boost::signals2::signal<void (Msg::shr_t msg)> s_dispatch;
     // NOLINTEND(misc-non-private-member-variables-in-classes,cppcoreguidelines-non-private-member-variables-in-classes)
 
   private:
@@ -52,7 +50,6 @@ namespace uzel
     AccuLine m_acculine{};
       /** temporal storage for the message header */
     std::optional<boost::property_tree::ptree> m_header;
-    Addr m_peer;
   };
 
 };
