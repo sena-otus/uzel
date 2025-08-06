@@ -80,7 +80,9 @@ session::~session()
       }
       s_auth(shared_from_this());
     }
-    s_dispatch(msg, shared_from_this());
+
+    m_dispatcher.dispatch(*msg, shared_from_this());
+      // s_dispatch(msg, shared_from_this());
   }
 
 

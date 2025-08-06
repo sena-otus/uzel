@@ -1,7 +1,6 @@
 #pragma once
 
 #include "msg.h"
-#include "session.h"
 
 namespace uzel {
 
@@ -22,13 +21,14 @@ namespace uzel {
     std::unordered_map<std::string, std::function<void(const Msg&)>> m_handlers;
   };
 
+  template<class SessionT>
   class SessionMsgDispatcher {
   public:
-    void registerHandler(const std::string& cname, std::function<void(const Msg&, session::shr_t ss)> handler) {
+    void registerHandler(const std::string& cname, std::function<void(const Msg&, typename SessionT::shr_t ss)> handler) {
       m_serviceHandlers[cname] = std::move(handler);
     }
 
-    void dispatch(const Msg& msg, session::shr_t ss) const {
+    void dispatch(const Msg& msg, SessionT::shr_t ss) const {
       auto it = m_serviceHandlers.find(msg.cname());
       if (it != m_serviceHandlers.end()) {
         it->second(msg,ss);
@@ -36,7 +36,7 @@ namespace uzel {
     }
 
   private:
-    std::unordered_map<std::string, std::function<void(const Msg&, session::shr_t ss)>> m_serviceHandlers;
+    std::unordered_map<std::string, std::function<void(const Msg&, typename SessionT::shr_t ss)>> m_serviceHandlers;
   };
 
 }

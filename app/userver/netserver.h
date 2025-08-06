@@ -66,5 +66,4 @@ private:
   aresolver m_aresolver;
   boost::asio::io_context& m_iocontext;
   OutgoingManager m_outman;
-  uzel::Dispatcher m_dispatcher;
 };

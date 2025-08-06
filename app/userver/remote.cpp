@@ -16,12 +16,14 @@ remote::remote(std::string nodename)
 void remote::addSession(session::shr_t ss)
 {
   ss->s_closed.connect([&](session::shr_t ss) { onSessionClosed(ss);});
+  // ss->s_dispatch.connect([this](uzel::Msg::shr_t msg, uzel::session::shr_t ss){
+  //   if(msg->cname() == "priority") {
+  //     handlePriorityMsg(msg, ss);
+  //   }
+  // });
 
-  ss->s_dispatch.connect([this](uzel::Msg::shr_t msg, uzel::session::shr_t ss){
-    if(msg->cname() == "priority") {
-      handlePriorityMsg(msg, ss);
-    }
-  });
+  auto prioHandler = [this](const Msg &msg, session::shr_t ss){handlePriorityMsg(msg, ss);};
+  ss->registerHandler("priority", prioHandler);
 
     // who is the boss?
   if(ss->msg1().from().node() > uzel::UConfigS::getUConfig().nodeName()) {
@@ -67,13 +69,13 @@ void remote::addSession(session::shr_t ss)
   }
 }
 
-  void remote::handlePriorityMsg(Msg::shr_t msg, session::shr_t ss)
+  void remote::handlePriorityMsg(const Msg &msg, session::shr_t ss)
   {
     m_sessionWaitForRemote.erase(ss);
-    auto prio = msg->pbody().get<Priority>("priority", Priority::undefined);
+    auto prio = msg.pbody().get<Priority>("priority", Priority::undefined);
     switch(prio)
     {
-      case +Priority::low:
+      case Priority::low:
       {
         ss->setPriority(Priority::low);
         auto sessionToClose = m_sessionL;
@@ -83,7 +85,7 @@ void remote::addSession(session::shr_t ss)
         }
         break;
       }
-      case +Priority::high:
+      case Priority::high:
       {
         ss->setPriority(Priority::high);
         auto sessionToClose = m_sessionH;
@@ -93,7 +95,8 @@ void remote::addSession(session::shr_t ss)
         }
         break;
       }
-      case +Priority::undefined:
+      default:
+      case Priority::undefined:
       {
         ss->gracefullClose("got undefined priority from remote");
         break;

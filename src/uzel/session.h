@@ -3,6 +3,7 @@
 //#include "acculine.h"
 #include "inputprocessor.h"
 #include "msg.h"
+#include "dispatcher.h"
 
 #include "enum.h"
 
@@ -107,6 +108,12 @@ public:
 
   [[nodiscard]] Direction direction() const {return m_direction;}
 
+  void registerHandler(const std::string& cname, std::function<void(const Msg&, session::shr_t ss)> handler)
+  {
+    m_dispatcher.registerHandler(cname, handler);
+  }
+
+
   void processMsg(Msg::shr_t msg);
 
 private:
@@ -139,6 +146,7 @@ private:
   std::string m_reason{};
   std::string m_remoteHostName{}; //!< is set only if Direction::outgoing
   boost::asio::ip::address m_remoteIp{};
+  SessionMsgDispatcher<session> m_dispatcher;
 };
 
   struct AddressHash {
