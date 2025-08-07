@@ -4,39 +4,36 @@
 
 namespace uzel {
 
+  template<class ShrSession>
   class MsgDispatcher {
   public:
-    void registerHandler(const std::string& cname, std::function<void(const Msg&)> handler) {
-      m_handlers[cname] = std::move(handler);
-    }
+    using StdMsgHandler = std::function<void(const Msg&)>;
+    using SessionMsgHandler = std::function<void(const Msg&, ShrSession ss)>;
 
-    void dispatch(const Msg& msg) const {
-      auto it = m_handlers.find(msg.cname());
-      if (it != m_handlers.end()) {
-        it->second(msg);
-      }
-    }
-
-  private:
-    std::unordered_map<std::string, std::function<void(const Msg&)>> m_handlers;
-  };
-
-  template<class SessionT>
-  class SessionMsgDispatcher {
-  public:
-    void registerHandler(const std::string& cname, std::function<void(const Msg&, typename SessionT::shr_t ss)> handler) {
+    void registerHandler(const std::string& cname, StdMsgHandler handler) {
       m_serviceHandlers[cname] = std::move(handler);
     }
 
-    void dispatch(const Msg& msg, SessionT::shr_t ss) const {
+    void registerHandler(const std::string& cname,  SessionMsgHandler handler) {
+      m_serviceHandlers[cname] = std::move(handler);
+    }
+
+    void dispatch(const Msg& msg, ShrSession ss) const {
       auto it = m_serviceHandlers.find(msg.cname());
       if (it != m_serviceHandlers.end()) {
-        it->second(msg,ss);
+        std::visit([&](auto&& handler) {
+          using T = std::decay_t<decltype(handler)>;
+          if constexpr (std::is_same_v<T, StdMsgHandler>) {
+            handler(msg);
+          } else if constexpr (std::is_same_v<typename T::value_type, SessionMsgHandler>) {
+            handler(msg,ss);
+          }
+        }, it->second);
       }
     }
 
   private:
-    std::unordered_map<std::string, std::function<void(const Msg&, typename SessionT::shr_t ss)>> m_serviceHandlers;
+    std::unordered_map<std::string, std::variant<StdMsgHandler, SessionMsgHandler>> m_serviceHandlers;
   };
 
 }

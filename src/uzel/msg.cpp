@@ -165,22 +165,36 @@ namespace uzel {
   void Msg::updateDest()
   {
     m_destType = DestType::local;
+    m_toMe = false;
     auto dest   = m_header.get<std::string>("to.n", "");
     auto appn = m_header.get<std::string>("to.a", "");
     m_dest = Addr(appn, dest);
     if(appn.empty() && dest.empty()){
       m_destType = DestType::service;
+      m_toMe = true;
       return;
     }
-    if(dest.empty()) return;
+    if(dest.empty()) {
+      if(appn == UConfigS::getUConfig().appName()) {
+        m_toMe = true;
+      }
+      return;
+    }
     if(dest == UConfigS::getUConfig().nodeName()) {
+      if(appn == UConfigS::getUConfig().appName()) {
+        m_toMe = true;
+      }
       if(appn == "*") {
         m_destType = DestType::localbroadcast;
+        m_toMe = true;
       }
       return;
     }
     if(dest == "*") {
       m_destType = DestType::broadcast;
+      if(appn == UConfigS::getUConfig().appName() || appn == "*") {
+        m_toMe = true;
+      }
       return;
     }
     m_destType = DestType::remote;

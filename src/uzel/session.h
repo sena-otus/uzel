@@ -50,7 +50,7 @@ namespace uzel
 
   using MsgQueue = std::deque<QueuedMsg>;
 
-
+  class NetAppBase;
 /**
  * class session handles one single (tcp) connection (there can be several between two remotes)
  * For incoming messages it uses uzel::Inputprocessor for initial
@@ -62,9 +62,9 @@ class session
 public:
   using shr_t = std::shared_ptr<session>;
   using asiotcp = boost::asio::ip::tcp;
+  using dispatcher_t = MsgDispatcher<session::shr_t>;
 
-
-  explicit session(asiotcp::socket socket, Direction direction, boost::asio::ip::address ip, std::string remoteHostName = "");
+  explicit session(NetAppBase &na, asiotcp::socket socket, Direction direction, boost::asio::ip::address ip, std::string remoteHostName = "");
   ~session();
 
   session(const session &other) = delete;
@@ -79,7 +79,7 @@ public:
 
     // NOLINTBEGIN(misc-non-private-member-variables-in-classes,cppcoreguidelines-non-private-member-variables-in-classes)
   boost::signals2::signal<void (session::shr_t ss)> s_auth;
-  boost::signals2::signal<void (uzel::Msg::shr_t msg, uzel::session::shr_t session)> s_dispatch;
+  boost::signals2::signal<void (uzel::Msg::shr_t msg)> s_forward;
   boost::signals2::signal<void (const std::string &hostname)> s_connect_error;
   boost::signals2::signal<void ()> s_send_error;
   boost::signals2::signal<void ()> s_recv_error;
@@ -108,13 +108,17 @@ public:
 
   [[nodiscard]] Direction direction() const {return m_direction;}
 
-  void registerHandler(const std::string& cname, std::function<void(const Msg&, session::shr_t ss)> handler)
+  void registerHandler(const std::string& cname, MsgDispatcher<session::shr_t>::StdMsgHandler handler)
   {
-    m_dispatcher.registerHandler(cname, handler);
+    m_netapp.registerMsgHandler(cname, std::move(handler));
   }
 
+  void registerHandler(const std::string& cname, MsgDispatcher<session::shr_t>::SessionMsgHandler handler)
+  {
+    m_netapp.registerMsgHandler(cname, std::move(handler));
+  }
 
-  void processMsg(Msg::shr_t msg);
+  void dispatchMsg(Msg::shr_t msg);
 
 private:
   void deleteOld();
@@ -146,7 +150,7 @@ private:
   std::string m_reason{};
   std::string m_remoteHostName{}; //!< is set only if Direction::outgoing
   boost::asio::ip::address m_remoteIp{};
-  SessionMsgDispatcher<session> m_dispatcher;
+  NetAppBase &m_netapp;
 };
 
   struct AddressHash {

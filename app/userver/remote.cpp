@@ -16,14 +16,7 @@ remote::remote(std::string nodename)
 void remote::addSession(session::shr_t ss)
 {
   ss->s_closed.connect([&](session::shr_t ss) { onSessionClosed(ss);});
-  // ss->s_dispatch.connect([this](uzel::Msg::shr_t msg, uzel::session::shr_t ss){
-  //   if(msg->cname() == "priority") {
-  //     handlePriorityMsg(msg, ss);
-  //   }
-  // });
-
-  auto prioHandler = [this](const Msg &msg, session::shr_t ss){handlePriorityMsg(msg, ss);};
-  ss->registerHandler("priority", prioHandler);
+  ss->registerHandler("priority", [this, ss](const Msg &msg){ handlePriorityMsg(msg, ss); });
 
     // who is the boss?
   if(ss->msg1().from().node() > uzel::UConfigS::getUConfig().nodeName()) {

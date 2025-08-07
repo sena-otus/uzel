@@ -23,7 +23,7 @@ namespace uzel
 
     enum class DestType
     {
-      local, remote, broadcast, localbroadcast, service
+      service, local, remote, broadcast, localbroadcast
     };
     using ptree = boost::property_tree::ptree;
     using hdr_t = ptree;
@@ -58,6 +58,7 @@ namespace uzel
     [[nodiscard]] const ptree& pbody() const;
       /** throws if there is no cname in header */
     [[nodiscard]] const std::string &cname() const;
+    [[nodiscard]] bool toMe() const;
   private:
     void setDest(const Addr &dest);
     void setCname(const std::string &cname);
@@ -71,6 +72,7 @@ namespace uzel
       // cached values:
     Addr m_dest;
     Addr m_from;
+    bool m_toMe; // set by updateDest()
   };
 
 

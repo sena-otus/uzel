@@ -30,20 +30,16 @@ public:
 
 
   void auth(uzel::session::shr_t ss);
-  void dispatch(uzel::Msg::shr_t msg, uzel::session::shr_t ss);
+  void forward(uzel::Msg::shr_t msg);
 private:
   void do_accept();
-  void serviceMsg(uzel::Msg::shr_t msg, uzel::session::shr_t ss);
   void localMsg(uzel::Msg::shr_t msg);
   void remoteMsg(uzel::Msg::shr_t msg);
   void broadcastMsg(uzel::Msg::shr_t msg);
   void localbroadcastMsg(uzel::Msg::shr_t msg);
+
   void connectResolved( boost::system::error_code ec,  boost::asio::ip::tcp::resolver::results_type rezit, const std::string &hname);
   void reconnectAfterDelay(const std::string &hname);
-  void handlePriorityMsg(uzel::Msg::shr_t msg, uzel::session::shr_t ss);
-//  void startResolving(const std::string &hname);
-//  void startConnecting(const std::string &hname);
-//  void startConnecting(std::shared_ptr<boost::asio::steady_timer> timer);
     /**
      *  find channel to remote node, if it does not exist, then create a new one
      *  */

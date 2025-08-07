@@ -14,12 +14,13 @@ namespace uzel
 
   using boost::asio::ip::tcp;
 
-  session::session(tcp::socket socket, Direction direction, boost::asio::ip::address ip, std::string remoteHostName)
+  session::session(NetAppBase &na, tcp::socket socket, Direction direction, boost::asio::ip::address ip, std::string remoteHostName)
     : m_socket(std::move(socket)),
       m_direction(direction),
       m_data{0}, m_msg1(make_shared<Msg>(uzel::Msg::ptree{}, "")),
       m_remoteIp(std::move(ip)),
-      m_remoteHostName(std::move(remoteHostName))
+      m_remoteHostName(std::move(remoteHostName)),
+      m_netapp(na)
   {
   }
 
@@ -70,7 +71,7 @@ session::~session()
   }
 
 
-  void session::processMsg(Msg::shr_t msg)
+  void session::dispatchMsg(Msg::shr_t msg)
   {
     if(!authenticated()) {
       if(!authenticate(msg)) {
@@ -79,10 +80,10 @@ session::~session()
         return;
       }
       s_auth(shared_from_this());
+        // no need to dispatch the first message
+      return;
     }
-
-    m_dispatcher.dispatch(*msg, shared_from_this());
-      // s_dispatch(msg, shared_from_this());
+    m_netapp.dispatch(msg, shared_from_this());
   }
 
 
