@@ -1,11 +1,11 @@
 #include "session.h"
 #include "addr.h"
 #include "dbg.h"
+#include "netappbase.h"
 
 #include <boost/asio.hpp>
 #include <boost/log/trivial.hpp>
 #include <memory>
-#include <stdexcept>
 #include <string>
 
 
@@ -83,7 +83,13 @@ session::~session()
         // no need to dispatch the first message
       return;
     }
-    m_netapp.dispatch(msg, shared_from_this());
+    if(msg->toMe())
+    {
+      m_dispatcher.dispatch(msg, shared_from_this());
+    }
+    if(m_router) {
+      m_router->route(msg);
+    }
   }
 
 

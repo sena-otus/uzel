@@ -55,6 +55,12 @@ namespace uzel {
   }
 
 
+  bool Msg::toMe() const
+  {
+    return m_toMe;
+  }
+
+
   void Msg::setDest(const Addr &dest) {
     auto realhname = dest.node();
     if(realhname == "localhost") {

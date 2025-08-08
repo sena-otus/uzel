@@ -6,10 +6,10 @@
 #include <uzel/aresolver.h>
 #include <uzel/session.h>
 #include <uzel/dispatcher.h>
+#include <uzel/netappbase.h>
 
 #include <boost/asio.hpp>
 #include <map>
-#include <unordered_map>
 
 
 namespace uzel
@@ -19,7 +19,7 @@ namespace uzel
 
 
 /** @brief tcp server */
-class NetServer
+class NetServer: public uzel::NetAppBase
 {
 public:
     /**
@@ -33,10 +33,11 @@ public:
   void forward(uzel::Msg::shr_t msg);
 private:
   void do_accept();
-  void localMsg(uzel::Msg::shr_t msg);
-  void remoteMsg(uzel::Msg::shr_t msg);
-  void broadcastMsg(uzel::Msg::shr_t msg);
-  void localbroadcastMsg(uzel::Msg::shr_t msg);
+  void handleServiceMsg(uzel::Msg::shr_t msg, uzel::session::shr_t ss) override;
+  void handleLocalMsg(uzel::Msg::shr_t msg) override;
+  void handleRemoteMsg(uzel::Msg::shr_t msg) override;
+  void handleBroadcastMsg(uzel::Msg::shr_t msg) override;
+  void handleLocalBroadcastMsg(uzel::Msg::shr_t msg) override;
 
   void connectResolved( boost::system::error_code ec,  boost::asio::ip::tcp::resolver::results_type rezit, const std::string &hname);
   void reconnectAfterDelay(const std::string &hname);
@@ -52,14 +53,10 @@ private:
   void onSessionCreated(uzel::session::shr_t newSession);
 
   const int MaxConnectionsWithAddr = 10;
-  const unsigned ResolverThreads = 5;
 
   uzel::IpToSession m_ipToSession;
   boost::asio::ip::tcp::acceptor m_acceptor;
   std::map<std::string, uzel::session::shr_t> m_locals;
   uzel::NodeToSession m_nodeToSession; ///<! map nodes to sessions
-
-  aresolver m_aresolver;
-  boost::asio::io_context& m_iocontext;
-  OutgoingManager m_outman;
+  uzel::OutgoingManager m_outman;
 };

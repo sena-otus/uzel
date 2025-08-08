@@ -2,16 +2,17 @@
 
 #include "aresolver.h"
 #include "session.h"
+#include "netappbase.h"
+
 #include <boost/asio.hpp>
 #include <map>
 
 namespace uzel
 {
   class session;
-}
 
 /** @brief TCP client */
-class NetClient
+class NetClient: public uzel::NetAppBase
 {
 public:
   /**
@@ -20,14 +21,18 @@ public:
    * @param port TCP port to connectect */
   NetClient(boost::asio::io_context& io_context, unsigned short port);
 
-  NetClient(const NetClient &) = delete;
-  NetClient(NetClient &&) = delete;
-  NetClient &operator=(const NetClient &) = delete;
-  NetClient &operator=(NetClient &&) = delete;
-  virtual ~NetClient() = default;
+  // NetClient(const NetClient &) = delete;
+  // NetClient(NetClient &&) = delete;
+  // NetClient &operator=(const NetClient &) = delete;
+  // NetClient &operator=(NetClient &&) = delete;
+  // ~NetClient() override = default;
 
+  void handleServiceMsg(uzel::Msg::shr_t msg, uzel::session::shr_t ss) override;
+  void handleLocalMsg(uzel::Msg::shr_t msg) override;
+  void handleRemoteMsg(uzel::Msg::shr_t msg) override;
+  void handleBroadcastMsg(uzel::Msg::shr_t msg) override;
+  void handleLocalBroadcastMsg(uzel::Msg::shr_t msg) override;
 
-  virtual void dispatch(uzel::Msg::shr_t msg, uzel::session::shr_t) = 0;
   void send(uzel::Msg::shr_t msg);
   boost::signals2::signal<void ()> s_authSuccess;
 
@@ -40,8 +45,9 @@ private:
   void connectResolved( boost::system::error_code ec,  const boost::asio::ip::tcp::resolver::results_type &rezit, const std::string &hname);
 
   std::map<std::string, uzel::session::shr_t> m_locals;
-  aresolver m_aresolver;
   boost::optional<boost::asio::io_context::work> m_work;
   boost::asio::steady_timer m_reconnectTimer;
   int m_port;
 };
+
+}

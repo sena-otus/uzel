@@ -10,6 +10,8 @@
 
 BETTER_ENUM(HostStatus, int8_t, initial, resolving, resolving_error, connecting, connection_error, connected, closed); //NOLINT
 
+namespace uzel {
+
 /** Status of the remote host to connect to */
 class RemoteHostToConnect
 {
@@ -47,8 +49,8 @@ class OutgoingManager final
 {
 public:
   explicit OutgoingManager(
-    boost::asio::io_context& iocontextw,
-    aresolver &resolver,
+    boost::asio::io_context& iocontext,
+    AResolver &resolver,
     const uzel::IpToSession &ipToSession,
     const uzel::NodeToSession &nodeToSession);
 
@@ -74,12 +76,15 @@ private:
   void connectResolved(const boost::system::error_code ec, const boost::asio::ip::tcp::resolver::results_type rezit, RemoteHostToConnect &rh);
 
 
-private:
+// continue private section: variable members
   boost::asio::io_context& m_iocontext;
-  aresolver &m_aresolver;
+  AResolver &m_aresolver;
   const uzel::IpToSession &m_ipToSession;
   const uzel::NodeToSession &m_nodeToSession;
   UMap m_connectTo; ///!< map remote hostnames to be connected to their status
   const int RefreshHostStatus_sec{15};
   const int DelayReconnect_sec{30};
 };
+
+
+}

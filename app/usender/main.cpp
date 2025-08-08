@@ -6,7 +6,6 @@
 #include <memory>
 #include <uzel/netclient.h>
 
-#include <iostream>
 #include <utility>
 
 /** simple app that will send a message to echo every 2 seconds */
@@ -16,7 +15,7 @@ const int generic_errorcode = 200;
 namespace io = boost::asio;
 const int send_s = 2;
 
-class NetPrinter : public NetClient
+class NetPrinter : public uzel::NetClient
 {
 public:
   explicit NetPrinter(boost::asio::io_context& io_context, uzel::Addr addr)

@@ -2,34 +2,38 @@
 
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 
-#include <utility>
+#include <utility> //NOLINT{unused-includes}
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/optional.hpp>
 #include <boost/thread.hpp>
-#include <iostream>
 
+namespace uzel
+{
 
-/// @brief Type used to emulate asynchronous host resolution with a
-///        dedicated thread pool.
-class aresolver
+/// @brief Asynchronous host resolution with a dedicated thread pool.
+class AResolver
 {
 public:
-  aresolver(const std::size_t pool_size, boost::asio::io_context &mainiocontext)
-    : m_mainiocontext(mainiocontext), m_work(boost::ref(m_iocontext))
-  {
+  AResolver(const std::size_t pool_size, boost::asio::io_context &mainiocontext)
+      : m_mainiocontext(mainiocontext), m_work(boost::ref(m_iocontext)) {
     // Create pool.
     for (std::size_t i = 0; i < pool_size; ++i)
       m_threads.create_thread([this]{m_iocontext.run();});
   }
 
-  ~aresolver()
+  ~AResolver()
   {
     m_work = boost::none;
     m_threads.join_all();
   }
+
+  AResolver(const AResolver &) = delete;
+  AResolver(AResolver &&) = delete;
+  AResolver &operator=(const AResolver &) = delete;
+  AResolver &operator=(AResolver &&) = delete;
 
 
   template <class Protocol>
@@ -39,7 +43,7 @@ public:
   void async_resolve(std::string host, std::string service,  resolve_handler_t<Protocol> handler)
   {
     boost::asio::post(m_iocontext,
-      boost::bind(&aresolver::do_async_resolve<Protocol>, this, host, service, handler)
+      boost::bind(&AResolver::do_async_resolve<Protocol>, this, host, service, handler)
                      );
   }
 
@@ -65,3 +69,5 @@ private:
   boost::optional<boost::asio::io_context::work> m_work;
   boost::thread_group m_threads;
 };
+
+}

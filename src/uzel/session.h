@@ -108,15 +108,15 @@ public:
 
   [[nodiscard]] Direction direction() const {return m_direction;}
 
-  void registerHandler(const std::string& cname, MsgDispatcher<session::shr_t>::StdMsgHandler handler)
-  {
-    m_netapp.registerMsgHandler(cname, std::move(handler));
-  }
+  // void registerHandler(const std::string& cname, MsgDispatcher<session::shr_t>::StdMsgHandler handler)
+  // {
+  //   m_netapp.registerMsgHandler(cname, std::move(handler));
+  // }
 
-  void registerHandler(const std::string& cname, MsgDispatcher<session::shr_t>::SessionMsgHandler handler)
-  {
-    m_netapp.registerMsgHandler(cname, std::move(handler));
-  }
+  // void registerHandler(const std::string& cname, MsgDispatcher<session::shr_t>::SessionMsgHandler handler)
+  // {
+  //   m_netapp.registerMsgHandler(cname, std::move(handler));
+  // }
 
   void dispatchMsg(Msg::shr_t msg);
 

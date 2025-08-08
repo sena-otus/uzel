@@ -17,8 +17,8 @@ namespace sys = boost::system;
 
 
 NetServer::NetServer(io::io_context& io_context, unsigned short port)
-  : m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),  m_aresolver{ResolverThreads, io_context}, m_iocontext(io_context),
-    m_outman(m_iocontext, m_aresolver, m_ipToSession, m_nodeToSession)
+  : uzel::NetAppBase(io_context), m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),
+    m_outman(io_context, aresolver(), m_ipToSession, m_nodeToSession)
 {
     // that throws exception!
     // TODO:  check how to properly set an option
@@ -43,7 +43,7 @@ void NetServer::onSessionCreated(uzel::session::shr_t newSession)
 
   newSession->s_closed.connect([&](uzel::session::shr_t ss){ onSessionClosed(ss);});
   newSession->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
-  newSession->s_dispatch.connect([&](uzel::Msg::shr_t msg, uzel::session::shr_t ss){ dispatch(msg,ss);});
+//  newSession->s_dispatch.connect([&](uzel::Msg::shr_t msg, uzel::session::shr_t ss){ dispatch(msg,ss);});
 }
 
 
@@ -55,7 +55,7 @@ void NetServer::do_accept()
       {
         if (!ec) {
           auto raddr = socket.remote_endpoint().address();
-          auto unauth = std::make_shared<uzel::session>(m_dispatcher, std::move(socket), uzel::Direction::incoming, raddr);
+          auto unauth = std::make_shared<uzel::session>(*this, std::move(socket), uzel::Direction::incoming, raddr);
           onSessionCreated(unauth);
           if(m_ipToSession[raddr].size() > MaxConnectionsWithAddr) {
             unauth->gracefullClose("connection refused: too many connections");
@@ -102,7 +102,7 @@ uzel::remote &NetServer::findAddRemote(const std::string &node)
 }
 
 
-void NetServer::localMsg(uzel::Msg::shr_t msg)
+void NetServer::handleLocalMsg(uzel::Msg::shr_t msg)
 {
   auto lit = m_locals.find(msg->dest().app());
   if(lit != m_locals.end()) {
@@ -110,7 +110,7 @@ void NetServer::localMsg(uzel::Msg::shr_t msg)
   }
 }
 
-void NetServer::localbroadcastMsg(uzel::Msg::shr_t msg)
+void NetServer::handleLocalBroadcastMsg(uzel::Msg::shr_t msg)
 {
   std::ranges::for_each(m_locals,
                         [&msg](auto &sp){
@@ -120,14 +120,14 @@ void NetServer::localbroadcastMsg(uzel::Msg::shr_t msg)
 }
 
 
-void NetServer::broadcastMsg(uzel::Msg::shr_t msg)
+void NetServer::handleBroadcastMsg(uzel::Msg::shr_t msg)
 {
   std::ranges::for_each(m_nodeToSession,
            [&msg](auto &sp) { sp.second.send(msg); });
 }
 
 
-void NetServer::remoteMsg(uzel::Msg::shr_t msg)
+void NetServer::handleRemoteMsg(uzel::Msg::shr_t msg)
 {
     // first check if there are
     // special routing rules for that node
@@ -146,38 +146,10 @@ void NetServer::remoteMsg(uzel::Msg::shr_t msg)
 }
 
 
-void NetServer::forward(uzel::Msg::shr_t msg)
-{
-  switch(msg->destType())
-  {
-    case uzel::Msg::DestType::service:
-    case uzel::Msg::DestType::me:
-        // nothing to forward, must be already processed locally
-      break;
-    case uzel::Msg::DestType::local:
-        // forward to local app
-      localMsg(msg);
-      break;
-    case uzel::Msg::DestType::remote:
-        // forward to remote
-      remoteMsg(msg);
-      break;
-    case uzel::Msg::DestType::broadcast:
-        // broadcast
-      broadcastMsg(msg);
-      break;
-    case uzel::Msg::DestType::localbroadcast:
-        // broadcast localy
-      localbroadcastMsg(msg);
-      break;
-  }
-}
-
-
 void NetServer::addAuthSessionToRemote(const std::string &rnode, uzel::session::shr_t ss)
 {
   auto &remote = findAddRemote(rnode);
-  remote.addSession(ss);
+  remote.addSession(dispatcher(), ss);
 }
 
 void NetServer::auth(uzel::session::shr_t ss)

@@ -11,7 +11,7 @@
 const int generic_errorcode = 200;
 
 
-class NetPrinter : public NetClient
+class NetPrinter : public uzel::NetClient
 {
 public:
   explicit NetPrinter(boost::asio::io_context& io_context)

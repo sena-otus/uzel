@@ -72,7 +72,7 @@ namespace uzel
       // cached values:
     Addr m_dest;
     Addr m_from;
-    bool m_toMe; // set by updateDest()
+    bool m_toMe{false}; // set by updateDest()
   };
 
 

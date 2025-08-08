@@ -5,6 +5,7 @@ add_library(uzel
   uconfig.cpp
   session.cpp
   netclient.cpp
+  netappbase.cpp
 )
 
 target_link_libraries(uzel PUBLIC Boost::boost Boost::thread Boost::system Boost::log)

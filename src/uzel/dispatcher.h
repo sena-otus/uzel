@@ -25,7 +25,7 @@ namespace uzel {
           using T = std::decay_t<decltype(handler)>;
           if constexpr (std::is_same_v<T, StdMsgHandler>) {
             handler(msg);
-          } else if constexpr (std::is_same_v<typename T::value_type, SessionMsgHandler>) {
+          } else if constexpr (std::is_same_v<T, SessionMsgHandler>) {
             handler(msg,ss);
           }
         }, it->second);

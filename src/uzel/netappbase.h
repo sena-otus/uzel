@@ -2,8 +2,8 @@
 
 #include "aresolver.h"
 #include "session.h"
+
 #include <boost/asio.hpp>
-#include <map>
 
 namespace uzel
 {
@@ -17,7 +17,7 @@ public:
    * @brief ctor
    * @param io_context asio io context
    */
-  NetAppBase(boost::asio::io_context& io_context);
+  explicit NetAppBase(boost::asio::io_context& io_context);
 
   NetAppBase(const NetAppBase &) = delete;
   NetAppBase(NetAppBase &&) = delete;
@@ -25,47 +25,26 @@ public:
   NetAppBase &operator=(NetAppBase &&) = delete;
   virtual ~NetAppBase() = default;
 
-  virtual void handleServiceMsg(const Msg &msg) {}
-  virtual void handleLocalMsg(const Msg &msg) {}
-  virtual void handleRemoteMsg(const Msg &msg) {}
-  virtual void handleLocalBroadcastMsg(const Msg &msg) {}
-  virtual void handleBroadcastMsg(const Msg &msg) {}
+  uzel::session::dispatcher_t &dispatcher()  const;
+  virtual void dispatch(Msg::shr_t msg, session::shr_t ss);
 
-  virtual void dispatch(Msg::shr_t msg, session::shr_t ss)
-  {
-    if(msg->toMe()) {
-      m_dispatcher.dispatch(*msg, ss);
-    }
-
-    switch(msg->destType())
-    {
-      case Msg::DestType::service: {
-        handleServiceMsg(*msg);
-        break;
-      }
-      case Msg::DestType::local: {
-        handleLocalMsg(*msg);
-        break;
-      }
-      case Msg::DestType::remote: {
-        handleRemoteMsg(*msg);
-        break;
-      }
-      case Msg::DestType::localbroadcast: {
-        handleLocalBroadcastMsg(*msg);
-        break;
-      }
-      case Msg::DestType::broadcast: {
-        handleBroadcastMsg(*msg);
-        break;
-      }
-    }
-  }
-
+protected:
+  boost::asio::io_context& iocontext() const;
+  AResolver& aresolver();
 private:
-  void serviceMsg(uzel::Msg &msg);
+  virtual void handleServiceMsg(Msg::shr_t msg, session::shr_t ss) = 0;
+  virtual void handleLocalMsg(Msg::shr_t msg) = 0;
+  virtual void handleRemoteMsg(Msg::shr_t msg) = 0;
+  virtual void handleLocalBroadcastMsg(Msg::shr_t msg) = 0;
+  virtual void handleBroadcastMsg(Msg::shr_t msg) = 0;
 
-  aresolver m_aresolver;
+
+
+  const unsigned ResolverThreads = 5;
+
+
+  boost::asio::io_context &m_iocontext;
+  AResolver m_aresolver;
   uzel::session::dispatcher_t m_dispatcher;
 };
 

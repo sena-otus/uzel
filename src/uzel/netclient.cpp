@@ -12,28 +12,47 @@
 #include <boost/chrono.hpp> // NOLINT(misc-include-cleaner)
 #include <boost/system/error_code.hpp>
 #include <memory>
-#include <iostream>
 #include <string>
 #include <utility>
 
 using boost::asio::ip::tcp;
 namespace io = boost::asio;
 
+namespace uzel
+{
+
 const int delay_reconnect_s = 10;
 const int resolver_threads = 1;
 
 NetClient::NetClient(io::io_context& io_context, unsigned short port)
-  : m_aresolver{resolver_threads, io_context}, m_work{boost::ref(io_context)},  // NOLINT(misc-include-cleaner)
+  : NetAppBase(io_context), m_work{boost::ref(io_context)},  // NOLINT(misc-include-cleaner)
     m_reconnectTimer(io_context, io::chrono::seconds(delay_reconnect_s)), // NOLINT(misc-include-cleaner)
     m_port(port)
 {
   start();
 }
 
+  void NetClient::handleServiceMsg(uzel::Msg::shr_t msg, uzel::session::shr_t ss)
+  {}
+
+  void NetClient::handleLocalMsg(uzel::Msg::shr_t msg)
+  {}
+
+  void NetClient::handleRemoteMsg(uzel::Msg::shr_t msg)
+  {}
+
+  void NetClient::handleBroadcastMsg(uzel::Msg::shr_t msg)
+  {}
+
+  void NetClient::handleLocalBroadcastMsg(uzel::Msg::shr_t msg)
+  {}
+
+
+
 void NetClient::start()
 {
   BOOST_LOG_TRIVIAL(debug) << DBGOUT << "resolve localhost...";
-  m_aresolver.async_resolve<tcp>("localhost", std::to_string(m_port),
+  aresolver().async_resolve<tcp>("localhost", std::to_string(m_port),
                                  [this](const boost::system::error_code ec, const tcp::resolver::results_type resit){
                                    connectResolved(ec,resit,"localhost");
                                  });
@@ -55,17 +74,12 @@ void NetClient::connectResolved(const boost::system::error_code ec, const tcp::r
   } else {
     BOOST_LOG_TRIVIAL(info) << "connecting to  "  << rezit->host_name() << "->" << rezit->endpoint();
     tcp::socket sock{m_work->get_io_context()};
-    auto unauth = std::make_shared<uzel::session>(std::move(sock), uzel::Direction::outgoing, rezit->endpoint().address(), rezit->host_name());
+    auto unauth = std::make_shared<uzel::session>(*this, std::move(sock), uzel::Direction::outgoing, rezit->endpoint().address(), rezit->host_name());
     unauth->s_connect_error.connect([&](const std::string &){ reconnectAfterDelay();});
     unauth->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
-    unauth->s_dispatch.connect([&](uzel::Msg::shr_t msg, uzel::session::shr_t ss){ dispatch(msg, ss);});
+//    unauth->s_dispatch.connect([&](uzel::Msg::shr_t msg, uzel::session::shr_t ss){ dispatch(msg, ss);});
     unauth->startConnection(rezit);
   }
-}
-
-
-void NetClient::dispatch(uzel::Msg::shr_t msg, uzel::session::shr_t ss)
-{
 }
 
 void NetClient::auth(uzel::session::shr_t ss)
@@ -92,4 +106,6 @@ void NetClient::auth(uzel::session::shr_t ss)
 void NetClient::send(uzel::Msg::shr_t msg)
 {
   m_locals["userver"]->putOutQueue(msg);
+}
+
 }

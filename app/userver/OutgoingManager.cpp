@@ -10,10 +10,11 @@ using boost::asio::ip::tcp;
 namespace io = boost::asio;
 namespace sys = boost::system;
 
+namespace uzel {
 
 OutgoingManager::OutgoingManager(
   boost::asio::io_context& iocontext,
-  aresolver &resolver,
+  AResolver &resolver,
   const uzel::IpToSession &ipToSession,
   const uzel::NodeToSession &nodeToSession)
   : m_iocontext(iocontext), m_aresolver(resolver), m_ipToSession(ipToSession), m_nodeToSession(nodeToSession)
@@ -156,4 +157,6 @@ void OutgoingManager::connectResolved(const sys::error_code ec, const tcp::resol
     sessions++;
   }
   rh.setStatus(HostStatus::connected);
+}
+
 }

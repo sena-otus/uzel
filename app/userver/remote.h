@@ -7,7 +7,6 @@
 namespace uzel
 {
 
-
 /** incapsulates logical channel to one remote */
 class remote
 {
@@ -18,10 +17,10 @@ public:
   remote &operator=(const remote &) = delete;
   remote(const remote &other) = delete;
   remote(remote &&) = default;
-  remote &operator=(remote &&) = default;
+  remote &operator=(remote &&) = delete;
   ~remote() = default;
 
-  void addSession(session::shr_t);
+  void addSession(session::dispatcher_t &dispatcher, session::shr_t);
   void send(uzel::Msg::shr_t msg);
   [[nodiscard]] bool connected() const;
   [[nodiscard]] size_t sessionCount() const;
