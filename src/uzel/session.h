@@ -92,7 +92,6 @@ public:
 
   [[nodiscard]] bool outQueueEmpty() const;
 
-  const uzel::Msg& msg1() const {return *m_msg1;}
   void start();
   void putOutQueue(uzel::Msg::shr_t msg);
     // take over processing of the messages from another (old) session
@@ -102,24 +101,12 @@ public:
   const boost::asio::ip::address& remoteIp() const{ return m_remoteIp;}
   void setRemoteHostName(const std::string &hname) {m_remoteHostName = hname;}
   const std::string& remoteHostName() const{ return m_remoteHostName;}
-  const std::string& remoteNode() const{ static std::string emptyString; return m_msg1 ? m_msg1->from().node() : emptyString ;}
+  const std::string& peerNode() const;
+  const std::string& peerApp() const;
   [[nodiscard]] bool authenticated() const { return m_msg1 != nullptr;}
-
-
   [[nodiscard]] Direction direction() const {return m_direction;}
-
-  // void registerHandler(const std::string& cname, MsgDispatcher<session::shr_t>::StdMsgHandler handler)
-  // {
-  //   m_netapp.registerMsgHandler(cname, std::move(handler));
-  // }
-
-  // void registerHandler(const std::string& cname, MsgDispatcher<session::shr_t>::SessionMsgHandler handler)
-  // {
-  //   m_netapp.registerMsgHandler(cname, std::move(handler));
-  // }
-
   void dispatchMsg(Msg::shr_t msg);
-
+  bool peerIsLocal() const;
 private:
   void deleteOld();
   void do_read();

@@ -13,16 +13,16 @@ remote::remote(NetAppContext::shr_t netctx, std::string nodename)
 }
 
 
-  void remote::addSession(session::shr_t ss)
+void remote::addSession(session::shr_t ss)
 {
   ss->s_closed.connect([&](session::shr_t ss) { onSessionClosed(ss);});
   m_netctx->dispatcher()->registerHandler("priority", [this](const Msg &msg){ handlePriorityMsg(msg); });
 
     // who is the boss?
-  if(ss->msg1().from().node() > uzel::UConfigS::getUConfig().nodeName()) {
+  if(ss->peerNode() > uzel::UConfigS::getUConfig().nodeName()) {
     BOOST_LOG_TRIVIAL(debug) << "he is the boss, because '"
                              << uzel::UConfigS::getUConfig().nodeName()
-                             << "' < '"<< ss->msg1().from().node() << "'";
+                             << "' < '"<< ss->peerNode() << "'";
     m_sessionWaitForRemote.emplace(ss);
     BOOST_LOG_TRIVIAL(debug) << "there are now " << m_sessionWaitForRemote.size()
                              << " session(s) for " << m_node << " waiting for decision";
@@ -32,7 +32,7 @@ remote::remote(NetAppContext::shr_t netctx, std::string nodename)
   } else {
     BOOST_LOG_TRIVIAL(debug) << "we are the boss, because '"
                              << uzel::UConfigS::getUConfig().nodeName()
-                             << "' > '"<< ss->msg1().from().node() << "'";
+                             << "' > '"<< ss->peerNode() << "'";
     if(!m_sessionH)
     {
       BOOST_LOG_TRIVIAL(debug) << "got high priority connection with '" << m_node

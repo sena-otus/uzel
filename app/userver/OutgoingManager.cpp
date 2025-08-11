@@ -116,7 +116,7 @@ void OutgoingManager::connectResolved(const sys::error_code ec, const tcp::resol
         }
         if(sit->authenticated()) {
             // remember the node name
-          outgoingnode = sit->remoteNode();
+          outgoingnode = sit->peerNode();
         }
       }
     }

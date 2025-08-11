@@ -185,18 +185,18 @@ void NetServer::addAuthSessionToRemote(const std::string &rnode, uzel::session::
 
 void NetServer::auth(uzel::session::shr_t ss)
 {
-  if(ss->msg1().fromLocal()) {
-    BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "new local connection, store local session with name " << ss->msg1().from().app();
+  if(ss->peerIsLocal()) {
+    BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "new local connection, store local session with name " << ss->peerApp();
       // if local app allows multiple instances, it should add pid to
       // the appname during auth, something like "usender:1251"
       // currently only single-instance applications are allowed
-    auto ssIt = m_locals.find(ss->msg1().from().app());
+    auto ssIt = m_locals.find(ss->peerApp());
     if(ssIt != m_locals.end()) {
       ss->takeOverMessages(*(ssIt->second));
     }
-    m_locals[ss->msg1().from().app()] = ss;
+    m_locals[ss->peerApp()] = ss;
   } else {
-    auto rnode = ss->msg1().from().node();
+    auto rnode = ss->peerNode();
     addAuthSessionToRemote(rnode, ss);
   }
 }

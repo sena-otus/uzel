@@ -7,6 +7,7 @@
 #include <boost/asio.hpp>
 #include <boost/log/trivial.hpp>
 #include <memory>
+#include <stdexcept>
 #include <string>
 
 
@@ -18,7 +19,7 @@ namespace uzel
   session::session(NetAppContextPtr netctx, tcp::socket socket, Direction direction, boost::asio::ip::address ip, std::string remoteHostName)
     : m_socket(std::move(socket)),
       m_direction(direction),
-      m_data{0}, m_msg1(make_shared<Msg>(uzel::Msg::ptree{}, "", SessionWPtr())),
+      m_data{0},
       m_remoteIp(std::move(ip)),
       m_remoteHostName(std::move(remoteHostName)),
       m_netctx(std::move(netctx))
@@ -31,6 +32,29 @@ session::~session()
   shutdown();
 }
 
+  bool session::peerIsLocal() const
+  {
+    if(authenticated() || !m_msg1) {
+      throw std::logic_error("called peerIsSameNode() on non-authenticated socket");
+    }
+    return m_msg1->fromLocal();
+  }
+
+  const std::string& session::peerNode() const
+  {
+    if(authenticated() || !m_msg1) {
+      throw std::logic_error("called peerNode() on non-authenticated socket");
+    }
+    return m_msg1->from().node();
+  }
+
+  const std::string& session::peerApp() const
+  {
+    if(authenticated() || !m_msg1) {
+      throw std::logic_error("called peerApp() on non-authenticated socket");
+    }
+    return m_msg1->from().app();
+  }
 
   bool session::authenticate(uzel::Msg::shr_t msg)
   {
@@ -74,8 +98,6 @@ session::~session()
 
   void session::dispatchMsg(Msg::shr_t msg)
   {
-    // auto wself = weak_from_this();
-    // msg->setOrigin(wself);
     if(!authenticated()) {
       if(!authenticate(msg)) {
         gracefullClose("authentication failed");

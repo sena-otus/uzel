@@ -67,8 +67,8 @@ void NetClient::connectResolved(const boost::system::error_code ec, const tcp::r
 
 void NetClient::auth(session::shr_t ss)
 {
-  if(ss->msg1().fromLocal()) {
-    auto appname = ss->msg1().from().app();
+  if(ss->peerIsLocal()) {
+    auto appname = ss->peerApp();
     BOOST_LOG_TRIVIAL(info) << "store local session with name " << appname;
     auto oldSessionIt = m_locals.find(appname);
     if(oldSessionIt != m_locals.end()) {
