@@ -27,14 +27,12 @@ public:
   // NetClient &operator=(NetClient &&) = delete;
   // ~NetClient() override = default;
 
-  // void handleServiceMsg(uzel::Msg::shr_t msg, uzel::session::shr_t ss) override;
-  // void handleLocalMsg(uzel::Msg::shr_t msg) override;
-  // void handleRemoteMsg(uzel::Msg::shr_t msg) override;
-  // void handleBroadcastMsg(uzel::Msg::shr_t msg) override;
-  // void handleLocalBroadcastMsg(uzel::Msg::shr_t msg) override;
-
   void send(uzel::Msg::shr_t msg);
   boost::signals2::signal<void ()> s_authSuccess;
+
+protected:
+
+  NetAppContextPtr netctx() { return m_netctx;}
 
 private:
   void start();

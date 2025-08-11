@@ -1,5 +1,6 @@
 #include "netappbase.h"
 #include "aresolver.h"
+#include "dispatcher.h"
 #include "session.h"
 #include "msg.h"
 
@@ -20,4 +21,10 @@ namespace uzel
   {
     return m_aresolver;
   }
+
+  MsgDispatcher::shr_t NetAppContext::dispatcher() const
+  {
+    return m_dispatcher;
+  }
+
 }

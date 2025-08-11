@@ -15,16 +15,16 @@
 
 
 namespace uzel {
-  Msg::Msg(Msg::ptree &&header, std::string &&body)
-    : m_body{std::vector<char>{body.begin(), body.end()}},  m_destType(DestType::local)
+  Msg::Msg(Msg::ptree &&header, std::string &&body, SessionWPtr sswptr)
+    : m_body{std::vector<char>{body.begin(), body.end()}},  m_destType(DestType::local), m_origin(std::move(sswptr))
   {
     m_header.swap(header);
     updateFrom();
     updateDest();
   }
 
-  Msg::Msg(Msg::ptree &&header, Msg::ptree &&body)
-    : m_header(header), m_body(body),  m_destType(DestType::local)
+  Msg::Msg(Msg::ptree &&header, Msg::ptree &&body, SessionWPtr sswptr)
+    : m_header(header), m_body(body),  m_destType(DestType::local), m_origin(std::move(sswptr))
   {
     updateFrom();
     updateDest();

@@ -1,3 +1,4 @@
+#include "uzel/netappbase.h"
 #include <uzel/session.h>
 
 #include <string>
@@ -11,8 +12,7 @@ namespace uzel
 class remote
 {
 public:
-  explicit remote(std::string nodename);
-//  remote(std::string node, session::shr_t ss);
+  explicit remote(NetAppContext::shr_t netctx, std::string nodename);
 
   remote &operator=(const remote &) = delete;
   remote(const remote &other) = delete;
@@ -24,7 +24,7 @@ public:
   void send(uzel::Msg::shr_t msg);
   [[nodiscard]] bool connected() const;
   [[nodiscard]] size_t sessionCount() const;
-  void handlePriorityMsg(const uzel::Msg &msg, uzel::session::shr_t ss);
+  void handlePriorityMsg(const uzel::Msg &msg);
 private:
   explicit remote(std::string &&nodeName);
 
@@ -38,6 +38,7 @@ private:
   session::shr_t m_sessionL;
   MsgQueue m_outHighQueue; ///! high prirority outgoing queue
   MsgQueue m_outLowQueue; ///! low priority outgoing queue
+  NetAppContext::shr_t m_netctx;
 };
 
   using NodeToSession = std::unordered_map<std::string, remote>;

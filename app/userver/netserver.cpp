@@ -16,7 +16,7 @@ namespace sys = boost::system;
 
 NetServer::NetServer(io::io_context& io_context, unsigned short port)
   : m_netctx(std::make_shared<uzel::NetAppContext>(io_context)), m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),
-    m_outman(io_context, aresolver(), m_ipToSession, m_nodeToSession)
+    m_outman(m_netctx, m_ipToSession, m_nodeToSession)
 {
     // that throws exception!
     // TODO:  check how to properly set an option
@@ -86,7 +86,7 @@ void NetServer::do_accept()
       {
         if (!ec) {
           auto raddr = socket.remote_endpoint().address();
-          auto unauth = std::make_shared<uzel::session>(*this, std::move(socket), uzel::Direction::incoming, raddr);
+          auto unauth = std::make_shared<uzel::session>(m_netctx, std::move(socket), uzel::Direction::incoming, raddr);
           onSessionCreated(unauth);
           if(m_ipToSession[raddr].size() > MaxConnectionsWithAddr) {
             unauth->gracefullClose("connection refused: too many connections");
@@ -125,7 +125,7 @@ uzel::remote &NetServer::findAddRemote(const std::string &node)
   if(remoteIt == m_nodeToSession.end())
   {
     BOOST_LOG_TRIVIAL(info) << "created new remote channel for node " << node;
-    remoteIt = m_nodeToSession.insert({node, uzel::remote(node)}).first;
+    remoteIt = m_nodeToSession.insert({node, uzel::remote(m_netctx, node)}).first;
   } else {
     BOOST_LOG_TRIVIAL(info) << "found existing remote channel for node " << node;
   }
@@ -180,7 +180,7 @@ void NetServer::handleRemoteMsg(uzel::Msg::shr_t msg)
 void NetServer::addAuthSessionToRemote(const std::string &rnode, uzel::session::shr_t ss)
 {
   auto &remote = findAddRemote(rnode);
-  remote.addSession(dispatcher(), ss);
+  remote.addSession(ss);
 }
 
 void NetServer::auth(uzel::session::shr_t ss)

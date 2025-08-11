@@ -29,7 +29,7 @@ namespace uzel
             Msg::ptree body;
             body.swap(bodyit->second);
             m_header->erase("body");
-            ss.dispatchMsg(std::make_shared<Msg>(std::move(*m_header), std::move(body)));
+            ss.dispatchMsg(std::make_shared<Msg>(std::move(*m_header), std::move(body), ss.weak_from_this()));
             m_header.reset();
           }
         }
@@ -40,7 +40,7 @@ namespace uzel
         continue;
       }
         // create msg
-      ss.dispatchMsg(std::make_shared<Msg>(std::move(*m_header), std::move(*line)));
+      ss.dispatchMsg(std::make_shared<Msg>(std::move(*m_header), std::move(*line), ss.weak_from_this()));
       m_header.reset();
     }
     return true;

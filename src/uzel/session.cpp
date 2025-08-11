@@ -1,6 +1,7 @@
 #include "session.h"
 #include "addr.h"
 #include "dbg.h"
+#include "msg.h"
 #include "netappbase.h"
 
 #include <boost/asio.hpp>
@@ -17,7 +18,7 @@ namespace uzel
   session::session(NetAppContextPtr netctx, tcp::socket socket, Direction direction, boost::asio::ip::address ip, std::string remoteHostName)
     : m_socket(std::move(socket)),
       m_direction(direction),
-      m_data{0}, m_msg1(make_shared<Msg>(uzel::Msg::ptree{}, "")),
+      m_data{0}, m_msg1(make_shared<Msg>(uzel::Msg::ptree{}, "", SessionWPtr())),
       m_remoteIp(std::move(ip)),
       m_remoteHostName(std::move(remoteHostName)),
       m_netctx(std::move(netctx))
@@ -73,6 +74,8 @@ session::~session()
 
   void session::dispatchMsg(Msg::shr_t msg)
   {
+    // auto wself = weak_from_this();
+    // msg->setOrigin(wself);
     if(!authenticated()) {
       if(!authenticate(msg)) {
         gracefullClose("authentication failed");

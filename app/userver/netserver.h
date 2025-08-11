@@ -54,10 +54,10 @@ private:
 
   const int MaxConnectionsWithAddr = 10;
 
+  uzel::NetAppContext::shr_t m_netctx;
   uzel::IpToSession m_ipToSession;
   boost::asio::ip::tcp::acceptor m_acceptor;
   std::map<std::string, uzel::session::shr_t> m_locals;
   uzel::NodeToSession m_nodeToSession; ///<! map nodes to sessions
   uzel::OutgoingManager m_outman;
-  uzel::NetAppContext::shr_t m_netctx;
 };

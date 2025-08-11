@@ -29,7 +29,7 @@ void OutgoingManager::startConnecting(const std::string &hname) {
 
 
 void OutgoingManager::startConnecting() {
-  auto timer = std::make_shared<io::steady_timer>(m_iocontext, io::chrono::seconds(RefreshHostStatus_sec));
+  auto timer = std::make_shared<io::steady_timer>(m_netctx->iocontext(), io::chrono::seconds(RefreshHostStatus_sec));
   startConnecting(timer);
 }
 
@@ -73,7 +73,7 @@ void OutgoingManager::startResolving(RemoteHostToConnect &rh)
 {
   rh.setStatus(HostStatus::resolving);
   BOOST_LOG_TRIVIAL(debug) << DBGOUT << " resolving " << rh.hostname() << "...";
-  m_aresolver.async_resolve<tcp>(rh.hostname(), "32300",
+  m_netctx->aresolver().async_resolve<tcp>(rh.hostname(), "32300",
                                  [this,&rh](const sys::error_code ec, const tcp::resolver::results_type resit){
                                    BOOST_LOG_TRIVIAL(debug) << DBGOUT;
                                    connectResolved(ec,resit,rh);
@@ -141,8 +141,8 @@ void OutgoingManager::connectResolved(const sys::error_code ec, const tcp::resol
   rh.setStatus(HostStatus::connecting);
   while(sessions < 2)
   {
-    tcp::socket sock{m_iocontext};
-    auto unauth = std::make_shared<uzel::session>(std::move(sock), uzel::Direction::outgoing, rezit->endpoint().address(), rh.hostname());
+    tcp::socket sock{m_netctx->iocontext()};
+    auto unauth = std::make_shared<uzel::session>(m_netctx, std::move(sock), uzel::Direction::outgoing, rezit->endpoint().address(), rh.hostname());
     s_sessionCreated(unauth);
 
     unauth->s_closed.connect([&](uzel::session::shr_t ss) {

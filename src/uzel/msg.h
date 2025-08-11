@@ -15,6 +15,9 @@
 
 namespace uzel
 {
+  class session;
+  using SessionWPtr = std::weak_ptr<session>;
+
   class Msg
   {
   public:
@@ -28,9 +31,9 @@ namespace uzel
     using ptree = boost::property_tree::ptree;
     using hdr_t = ptree;
       /*** construct incoming message */
-    explicit Msg(ptree &&header, std::string &&body);
+    explicit Msg(ptree &&header, std::string &&body, SessionWPtr sswptr);
       /*** construct incoming message */
-    explicit Msg(ptree &&header, ptree &&body);
+    explicit Msg(ptree &&header, ptree &&body, SessionWPtr sswptr);
       /** construct outgoing message */
     Msg(const Addr &dest, const std::string &cname, Msg::ptree && body);
       /** ctor forwarding message
@@ -59,6 +62,11 @@ namespace uzel
       /** throws if there is no cname in header */
     [[nodiscard]] const std::string &cname() const;
     [[nodiscard]] bool toMe() const;
+
+      /** remember from which session msg came (only for incoming) */
+    void setOrigin(std::weak_ptr<session> s) { m_origin = std::move(s); }
+      /** get originating session */
+    std::weak_ptr<session> origin() const { return m_origin; }
   private:
     void setDest(const Addr &dest);
     void setCname(const std::string &cname);
@@ -68,11 +76,12 @@ namespace uzel
 
     ptree m_header; //!< message header
     mutable std::variant<std::vector<char>,boost::property_tree::ptree> m_body; //!< unparsed/parsed message body
+      // cached values (not serialized):
     DestType m_destType;
-      // cached values:
     Addr m_dest;
     Addr m_from;
     bool m_toMe{false}; // set by updateDest()
+    SessionWPtr m_origin;
   };
 
 

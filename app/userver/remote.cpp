@@ -7,16 +7,16 @@ namespace uzel
 {
 
 
-remote::remote(std::string nodename)
-  : m_node(std::move(nodename))
+remote::remote(NetAppContext::shr_t netctx, std::string nodename)
+  : m_netctx(std::move(netctx)), m_node(std::move(nodename))
 {
 }
 
 
-void remote::addSession(session::shr_t ss)
+  void remote::addSession(session::shr_t ss)
 {
   ss->s_closed.connect([&](session::shr_t ss) { onSessionClosed(ss);});
-  m_netctx->dispatcher()->registerHandler("priority", [this, ss](const Msg &msg){ handlePriorityMsg(msg, ss); });
+  m_netctx->dispatcher()->registerHandler("priority", [this](const Msg &msg){ handlePriorityMsg(msg); });
 
     // who is the boss?
   if(ss->msg1().from().node() > uzel::UConfigS::getUConfig().nodeName()) {
@@ -62,37 +62,39 @@ void remote::addSession(session::shr_t ss)
   }
 }
 
-  void remote::handlePriorityMsg(const Msg &msg, session::shr_t ss)
+  void remote::handlePriorityMsg(const Msg &msg)
   {
-    m_sessionWaitForRemote.erase(ss);
-    auto prio = msg.pbody().get<Priority>("priority", Priority::undefined);
-    switch(prio)
-    {
-      case Priority::low:
+    if (auto ss = msg.origin().lock()) {
+      m_sessionWaitForRemote.erase(ss);
+      auto prio = msg.pbody().get<Priority>("priority", Priority::undefined);
+      switch(prio)
       {
-        ss->setPriority(Priority::low);
-        auto sessionToClose = m_sessionL;
-        m_sessionL = ss;
-        if(sessionToClose) {
-          sessionToClose->gracefullClose("overtaken by new connection");
+        case Priority::low:
+        {
+          ss->setPriority(Priority::low);
+          auto sessionToClose = m_sessionL;
+          m_sessionL = ss;
+          if(sessionToClose) {
+            sessionToClose->gracefullClose("overtaken by new connection");
+          }
+          break;
         }
-        break;
-      }
-      case Priority::high:
-      {
-        ss->setPriority(Priority::high);
-        auto sessionToClose = m_sessionH;
-        m_sessionH = ss;
-        if(sessionToClose) {
-          sessionToClose->gracefullClose("overtaken by new connection");
+        case Priority::high:
+        {
+          ss->setPriority(Priority::high);
+          auto sessionToClose = m_sessionH;
+          m_sessionH = ss;
+          if(sessionToClose) {
+            sessionToClose->gracefullClose("overtaken by new connection");
+          }
+          break;
         }
-        break;
-      }
-      default:
-      case Priority::undefined:
-      {
-        ss->gracefullClose("got undefined priority from remote");
-        break;
+        default:
+        case Priority::undefined:
+        {
+          ss->gracefullClose("got undefined priority from remote");
+          break;
+        }
       }
     }
   }

@@ -17,14 +17,12 @@ public:
   explicit NetPrinter(boost::asio::io_context& io_context)
     : NetClient(io_context, 32300)
   {
+    netctx()->dispatcher()->registerHandler("ping", [this](const uzel::Msg &msg){
+      BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "Got message: " << "ping";
+      send(std::make_shared<uzel::Msg>(msg.from(), msg));
+    });
   }
 
-  void dispatch(uzel::Msg::shr_t msg, uzel::session::shr_t ss) override
-  {
-    BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "Got message: " << msg->str();
-      // that will  destroy  msg!
-    send(std::make_shared<uzel::Msg>(msg->from(), std::move(*msg)));
-  }
 private:
 
 };
