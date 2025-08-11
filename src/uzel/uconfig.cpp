@@ -29,7 +29,7 @@ namespace uzel
     static_assert(false, "unrecognized platform");
 
 #endif
-}
+  }
 
   UConfig::UConfig()
   {

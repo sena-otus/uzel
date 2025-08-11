@@ -14,45 +14,6 @@
 #include <memory>
 
 namespace uzel {
-
-  // class Msg;
-  //
-  // template<class ShrSession>
-  // class MsgDispatcher {
-  // public:
-  //   using StdMsgHandler = std::function<void(const Msg&)>;
-  //   using SessionMsgHandler = std::function<void(const Msg&, ShrSession ss)>;
-
-  //   void registerHandler(const std::string& cname, StdMsgHandler handler) {
-  //     m_handlers[cname] = std::move(handler);
-  //   }
-
-  //   void registerHandler(StdMsgHandler handler);
-
-  //   void registerHandler(const std::string& cname,  SessionMsgHandler handler) {
-  //     m_handlers[cname] = std::move(handler);
-  //   }
-
-  //   void dispatch(const Msg& msg, ShrSession ss) const {
-  //     auto it = m_handlers.find(msg.cname());
-  //     if (it != m_handlers.end()) {
-  //       std::visit([&](auto&& handler) {
-  //         using T = std::decay_t<decltype(handler)>;
-  //         if constexpr (std::is_same_v<T, StdMsgHandler>) {
-  //           handler(msg);
-  //         } else if constexpr (std::is_same_v<T, SessionMsgHandler>) {
-  //           handler(msg,ss);
-  //         }
-  //       }, it->second);
-  //     }
-  //   }
-
-
-  // private:
-  //   std::unordered_map<std::string, std::variant<StdMsgHandler, SessionMsgHandler>> m_handlers;
-  // };
-
-
   class Msg;
 
   class MsgDispatcher : public std::enable_shared_from_this<MsgDispatcher> {

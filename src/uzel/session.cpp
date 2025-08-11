@@ -26,11 +26,11 @@ namespace uzel
   {
   }
 
-session::~session()
-{
-    // do not call stop() from destructor, it uses shared_from_this()!
-  shutdown();
-}
+  session::~session()
+  {
+      // do not call stop() from destructor, it uses shared_from_this()!
+    shutdown();
+  }
 
   bool session::peerIsLocal() const
   {
@@ -112,116 +112,116 @@ session::~session()
   }
 
 
-void session::start()
-{
-  uzel::Msg::ptree body{};
-  body.add("pid", getpid());
-
-  putOutQueue(std::make_shared<Msg>(uzel::Addr(), "auth", std::move(body)));
-  do_read();
-}
-
-void session::startConnection(const tcp::resolver::results_type &remote)
-{
-  auto self(shared_from_this());
-  m_socket.async_connect(
-    *remote,
-    [&, self, remote](const boost::system::error_code &ec) {
-      self->connectHandler(ec, remote);
-    }
-                         );
-}
-
-void session::gracefullClose(const std::string &reason)
-{
-  if(m_closeFlag) {
-    return;
-  }
-  m_reason = reason;
-  m_closeFlag = true;
-  if(m_outQueue.empty()) {
-    sendByeAndClose();
-  }
-}
-
-void session::sendByeAndClose()
-{
-  uzel::Msg::ptree body{};
-  body.add("bye", m_reason);
-  std::string &&byeStr = uzel::Msg(uzel::Addr(), "bye", std::move(body)).move_tostr();
-  boost::asio::async_write(m_socket, boost::asio::buffer(byeStr),
-                           [self = shared_from_this()](boost::system::error_code, std::size_t) {
-                             self->stop();
-                           });
-}
-
-
-
-void session::takeOverMessages(session &os)
-{
-  takeOverMessages(os.m_outQueue);
-}
-
-
-void session::takeOverMessages(MsgQueue &oq)
-{
-  bool wasEmpty = outQueueEmpty();
-  size_t count{0};
-  while(!oq.empty())
+  void session::start()
   {
-    if(oq.front().destType() == Msg::DestType::service) {
-      continue;
+    uzel::Msg::ptree body{};
+    body.add("pid", getpid());
+
+    putOutQueue(std::make_shared<Msg>(uzel::Addr(), "auth", std::move(body)));
+    do_read();
+  }
+
+  void session::startConnection(const tcp::resolver::results_type &remote)
+  {
+    auto self(shared_from_this());
+    m_socket.async_connect(
+      *remote,
+      [&, self, remote](const boost::system::error_code &ec) {
+        self->connectHandler(ec, remote);
+      }
+                           );
+  }
+
+  void session::gracefullClose(const std::string &reason)
+  {
+    if(m_closeFlag) {
+      return;
+    }
+    m_reason = reason;
+    m_closeFlag = true;
+    if(m_outQueue.empty()) {
+      sendByeAndClose();
+    }
+  }
+
+  void session::sendByeAndClose()
+  {
+    uzel::Msg::ptree body{};
+    body.add("bye", m_reason);
+    std::string &&byeStr = uzel::Msg(uzel::Addr(), "bye", std::move(body)).move_tostr();
+    boost::asio::async_write(m_socket, boost::asio::buffer(byeStr),
+                             [self = shared_from_this()](boost::system::error_code, std::size_t) {
+                               self->stop();
+                             });
+  }
+
+
+
+  void session::takeOverMessages(session &os)
+  {
+    takeOverMessages(os.m_outQueue);
+  }
+
+
+  void session::takeOverMessages(MsgQueue &oq)
+  {
+    bool wasEmpty = outQueueEmpty();
+    size_t count{0};
+    while(!oq.empty())
+    {
+      if(oq.front().destType() == Msg::DestType::service) {
+        continue;
+      }
+
+      m_outQueue.emplace_back(std::move(oq.front()));
+      oq.pop_front();
+      count++;
     }
 
-    m_outQueue.emplace_back(std::move(oq.front()));
-    oq.pop_front();
-    count++;
-  }
-
-  if(count > 0) {
-    BOOST_LOG_TRIVIAL(debug) << DBGOUT << " queue " << &m_outQueue <<  " take over "  << count << " messsages from " << &oq;
-    if(wasEmpty) {
-      do_write();
+    if(count > 0) {
+      BOOST_LOG_TRIVIAL(debug) << DBGOUT << " queue " << &m_outQueue <<  " take over "  << count << " messsages from " << &oq;
+      if(wasEmpty) {
+        do_write();
+      }
     }
   }
-}
 
 
 
-void session::connectHandler(const boost::system::error_code &ec, const tcp::resolver::results_type &remote)
-{
-  if(ec) {
-    BOOST_LOG_TRIVIAL(error) << "connection error: " << ec.message() << " when connecting to " << remote->host_name() << "->" << remote->endpoint();
-    s_connect_error(remote->host_name());
-    stop();
-  } else {
-    s_connected();
-    start();
+  void session::connectHandler(const boost::system::error_code &ec, const tcp::resolver::results_type &remote)
+  {
+    if(ec) {
+      BOOST_LOG_TRIVIAL(error) << "connection error: " << ec.message() << " when connecting to " << remote->host_name() << "->" << remote->endpoint();
+      s_connect_error(remote->host_name());
+      stop();
+    } else {
+      s_connected();
+      start();
+    }
   }
-}
 
 
-void session::do_read()
-{
-  m_socket.async_read_some(
-    boost::asio::buffer(m_data, max_length),
-    [self = shared_from_this()](boost::system::error_code ec, std::size_t length)
-      {
-        if(ec) {
-          BOOST_LOG_TRIVIAL(error) << "error reading from socket: " << ec.message();
-          self->s_recv_error();
-          self->stop();
-          return;
-        }
-        if(!self->m_processor.processNewInput(std::string_view(self->m_data.data(), length), *self)) {
-          BOOST_LOG_TRIVIAL(error) << "error parsing stream from remote: (implement error message)";
-          self->s_recv_error();
-          self->stop();
-          return;
-        }
-        self->do_read();
-     });
-}
+  void session::do_read()
+  {
+    m_socket.async_read_some(
+      boost::asio::buffer(m_data, max_length),
+      [self = shared_from_this()](boost::system::error_code ec, std::size_t length)
+        {
+          if(ec) {
+            BOOST_LOG_TRIVIAL(error) << "error reading from socket: " << ec.message();
+            self->s_recv_error();
+            self->stop();
+            return;
+          }
+          if(!self->m_processor.processNewInput(std::string_view(self->m_data.data(), length), *self)) {
+            BOOST_LOG_TRIVIAL(error) << "error parsing stream from remote: (implement error message)";
+            self->s_recv_error();
+            self->stop();
+            return;
+          }
+          self->do_read();
+        });
+  }
 
   bool session::outQueueEmpty() const
   {
@@ -252,94 +252,94 @@ void session::do_read()
 
 
 //NOLINTBEGIN(misc-no-recursion)
-void session::do_write()
-{
-  deleteOld();
-  if(outQueueEmpty()) return;
-  BOOST_LOG_TRIVIAL(debug) << DBGOUT << " before write queue "  << &(m_outQueue) << " size: " << m_outQueue.size();
-  boost::asio::async_write(
-    m_socket, boost::asio::buffer(m_outQueue.front().rawmsg()),
-    [self = shared_from_this()](boost::system::error_code ec, std::size_t /*length*/)
-      {
-        if(ec) {
-          BOOST_LOG_TRIVIAL(error) << "got error while writing to the socket: " << ec.message();
-          self->s_send_error();
-          self->stop();
-       } else {
-          BOOST_LOG_TRIVIAL(debug) << DBGOUT << " after write queue "  << &(self->m_outQueue) << " size: " << self->m_outQueue.size();
-          const auto &rawmsg = self->m_outQueue.front().rawmsg();
-          BOOST_LOG_TRIVIAL(debug) << DBGOUT << "writing succeed " << std::string_view(rawmsg.data(), rawmsg.size());
-          self->m_outQueue.pop_front();
-          self->deleteOld();
-            // do not wait until everything from outQueue will be sent and queue will become empty,
-            // messages from queue will be taken over by the next session
-            // if(self->outQueueEmpty())
-          {
-            if(self->m_closeFlag) {
-              self->sendByeAndClose();
+  void session::do_write()
+  {
+    deleteOld();
+    if(outQueueEmpty()) return;
+    BOOST_LOG_TRIVIAL(debug) << DBGOUT << " before write queue "  << &(m_outQueue) << " size: " << m_outQueue.size();
+    boost::asio::async_write(
+      m_socket, boost::asio::buffer(m_outQueue.front().rawmsg()),
+      [self = shared_from_this()](boost::system::error_code ec, std::size_t /*length*/)
+        {
+          if(ec) {
+            BOOST_LOG_TRIVIAL(error) << "got error while writing to the socket: " << ec.message();
+            self->s_send_error();
+            self->stop();
+          } else {
+            BOOST_LOG_TRIVIAL(debug) << DBGOUT << " after write queue "  << &(self->m_outQueue) << " size: " << self->m_outQueue.size();
+            const auto &rawmsg = self->m_outQueue.front().rawmsg();
+            BOOST_LOG_TRIVIAL(debug) << DBGOUT << "writing succeed " << std::string_view(rawmsg.data(), rawmsg.size());
+            self->m_outQueue.pop_front();
+            self->deleteOld();
+              // do not wait until everything from outQueue will be sent and queue will become empty,
+              // messages from queue will be taken over by the next session
+              // if(self->outQueueEmpty())
+            {
+              if(self->m_closeFlag) {
+                self->sendByeAndClose();
+              }
+              return;
             }
-            return;
+            self->do_write();
           }
-          self->do_write();
-        }
-      });
-}
+        });
+  }
 //NOLINTEND(misc-no-recursion)
 
 
-void session::putOutQueue(uzel::Msg::shr_t msg)
-{
-  BOOST_LOG_TRIVIAL(debug) << DBGOUT << " inserting message to '" << msg->dest().app() << "@" << msg->dest().node() << "' into the output queue " << &m_outQueue;
-  const bool wasEmpty = m_outQueue.empty();
-  m_outQueue.emplace_back(msg);
-  BOOST_LOG_TRIVIAL(debug) << DBGOUT << " inserted, new output queue size is: " << m_outQueue.size();
-  if(wasEmpty) {
-    do_write();
-  }
-}
-
-
-
-void session::stop()
-{
-  if(m_stopped) return;
-
-  shutdown();
-
-    // set flags after shutdown(), so it will prevent shutdown() from
-    // executing:
-
-  m_stopped = true;
-  m_closeFlag = true;
-
-    // signal everybody interested
-  s_closed(shared_from_this());
-}
-
-void session::shutdown()
-{
-  if(m_stopped) return;
-  m_stopped = true;
-  m_closeFlag = true;
-
-  boost::system::error_code ec;
-  m_socket.cancel(ec);
-  if (ec && ec != boost::asio::error::bad_descriptor) {
-    BOOST_LOG_TRIVIAL(error) << "Cancel error: " << ec.message();
+  void session::putOutQueue(uzel::Msg::shr_t msg)
+  {
+    BOOST_LOG_TRIVIAL(debug) << DBGOUT << " inserting message to '" << msg->dest().app() << "@" << msg->dest().node() << "' into the output queue " << &m_outQueue;
+    const bool wasEmpty = m_outQueue.empty();
+    m_outQueue.emplace_back(msg);
+    BOOST_LOG_TRIVIAL(debug) << DBGOUT << " inserted, new output queue size is: " << m_outQueue.size();
+    if(wasEmpty) {
+      do_write();
+    }
   }
 
-    // Shut down socket (this flushes buffers and signals EOF to peer)
-  m_socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
-  if (ec && ec != boost::asio::error::not_connected) {
-    BOOST_LOG_TRIVIAL(error) << "Shutdown error: " << ec.message();
+
+
+  void session::stop()
+  {
+    if(m_stopped) return;
+
+    shutdown();
+
+      // set flags after shutdown(), so it will prevent shutdown() from
+      // executing:
+
+    m_stopped = true;
+    m_closeFlag = true;
+
+      // signal everybody interested
+    s_closed(shared_from_this());
   }
 
-    // Close the socket
-  m_socket.close(ec);
-  if (ec) {
-    BOOST_LOG_TRIVIAL(error) << "Close error: " << ec.message();
+  void session::shutdown()
+  {
+    if(m_stopped) return;
+    m_stopped = true;
+    m_closeFlag = true;
+
+    boost::system::error_code ec;
+    m_socket.cancel(ec);
+    if (ec && ec != boost::asio::error::bad_descriptor) {
+      BOOST_LOG_TRIVIAL(error) << "Cancel error: " << ec.message();
+    }
+
+      // Shut down socket (this flushes buffers and signals EOF to peer)
+    m_socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+    if (ec && ec != boost::asio::error::not_connected) {
+      BOOST_LOG_TRIVIAL(error) << "Shutdown error: " << ec.message();
+    }
+
+      // Close the socket
+    m_socket.close(ec);
+    if (ec) {
+      BOOST_LOG_TRIVIAL(error) << "Close error: " << ec.message();
+    }
   }
-}
 
 
 }

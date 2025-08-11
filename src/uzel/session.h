@@ -57,88 +57,88 @@ namespace uzel
  * For incoming messages it uses uzel::Inputprocessor for initial
  * message parsing and dispatch, outgoing messages are queued in m_outQueue
  *  */
-class session
-  : public std::enable_shared_from_this<session>
-{
-public:
-  using shr_t = std::shared_ptr<session>;
-  using asiotcp = boost::asio::ip::tcp;
+  class session
+    : public std::enable_shared_from_this<session>
+  {
+  public:
+    using shr_t = std::shared_ptr<session>;
+    using asiotcp = boost::asio::ip::tcp;
 
-  explicit session(NetAppContextPtr netctx, asiotcp::socket socket, Direction direction, boost::asio::ip::address ip, std::string remoteHostName = "");
-  ~session();
+    explicit session(NetAppContextPtr netctx, asiotcp::socket socket, Direction direction, boost::asio::ip::address ip, std::string remoteHostName = "");
+    ~session();
 
-  session(const session &other) = delete;
-  session(session &&other) = delete;
-  session& operator=(session &&other) = delete;
-  session& operator=(const session &other) = delete;
+    session(const session &other) = delete;
+    session(session &&other) = delete;
+    session& operator=(session &&other) = delete;
+    session& operator=(const session &other) = delete;
 
-    /** notify peer and shut down */
-  void gracefullClose(const std::string &reason);
-  void startConnection(const asiotcp::resolver::results_type &remote);
-  void connectHandler(const boost::system::error_code &ec, const asiotcp::resolver::results_type &remote);
+      /** notify peer and shut down */
+    void gracefullClose(const std::string &reason);
+    void startConnection(const asiotcp::resolver::results_type &remote);
+    void connectHandler(const boost::system::error_code &ec, const asiotcp::resolver::results_type &remote);
 
-    // NOLINTBEGIN(misc-non-private-member-variables-in-classes,cppcoreguidelines-non-private-member-variables-in-classes)
-  boost::signals2::signal<void (session::shr_t ss)> s_auth;
-  boost::signals2::signal<void (uzel::Msg::shr_t msg)> s_forward;
-  boost::signals2::signal<void (const std::string &hostname)> s_connect_error;
-  boost::signals2::signal<void ()> s_send_error;
-  boost::signals2::signal<void ()> s_recv_error;
-  boost::signals2::signal<void ()> s_connected;
-  boost::signals2::signal<void (session::shr_t ss)> s_closed;
-    // NOLINTEND(misc-non-private-member-variables-in-classes,cppcoreguidelines-non-private-member-variables-in-classes)
+      // NOLINTBEGIN(misc-non-private-member-variables-in-classes,cppcoreguidelines-non-private-member-variables-in-classes)
+    boost::signals2::signal<void (session::shr_t ss)> s_auth;
+    boost::signals2::signal<void (uzel::Msg::shr_t msg)> s_forward;
+    boost::signals2::signal<void (const std::string &hostname)> s_connect_error;
+    boost::signals2::signal<void ()> s_send_error;
+    boost::signals2::signal<void ()> s_recv_error;
+    boost::signals2::signal<void ()> s_connected;
+    boost::signals2::signal<void (session::shr_t ss)> s_closed;
+      // NOLINTEND(misc-non-private-member-variables-in-classes,cppcoreguidelines-non-private-member-variables-in-classes)
 
-  Priority priority() const { return m_priority;}
-  void setPriority(Priority p) { m_priority = p;}
+    Priority priority() const { return m_priority;}
+    void setPriority(Priority p) { m_priority = p;}
 
-  [[nodiscard]] bool outQueueEmpty() const;
+    [[nodiscard]] bool outQueueEmpty() const;
 
-  void start();
-  void putOutQueue(uzel::Msg::shr_t msg);
-    // take over processing of the messages from another (old) session
-  void takeOverMessages(session &os);
-  void takeOverMessages(MsgQueue &oq);
-  void setRemoteIp(const boost::asio::ip::address &ip) {m_remoteIp = ip;}
-  const boost::asio::ip::address& remoteIp() const{ return m_remoteIp;}
-  void setRemoteHostName(const std::string &hname) {m_remoteHostName = hname;}
-  const std::string& remoteHostName() const{ return m_remoteHostName;}
-  const std::string& peerNode() const;
-  const std::string& peerApp() const;
-  [[nodiscard]] bool authenticated() const { return m_msg1 != nullptr;}
-  [[nodiscard]] Direction direction() const {return m_direction;}
-  void dispatchMsg(Msg::shr_t msg);
-  bool peerIsLocal() const;
-private:
-  void deleteOld();
-  void do_read();
-  void do_write();
-  bool authenticate(uzel::Msg::shr_t msg);
-  void sendByeAndClose();
-    /**
-     *  shutdown socket and release all related resources, emits signal
-     *  s_closed(shared_from_this()), so it can not be called from ~session()
-     *  */
-  void stop();
-    /**
-     * Same as a stop() above but can be called from destructor as it
-     * does not call emits signal s_closed(shared_from_this())
-     * */
-  void shutdown();
+    void start();
+    void putOutQueue(uzel::Msg::shr_t msg);
+      // take over processing of the messages from another (old) session
+    void takeOverMessages(session &os);
+    void takeOverMessages(MsgQueue &oq);
+    void setRemoteIp(const boost::asio::ip::address &ip) {m_remoteIp = ip;}
+    const boost::asio::ip::address& remoteIp() const{ return m_remoteIp;}
+    void setRemoteHostName(const std::string &hname) {m_remoteHostName = hname;}
+    const std::string& remoteHostName() const{ return m_remoteHostName;}
+    const std::string& peerNode() const;
+    const std::string& peerApp() const;
+    [[nodiscard]] bool authenticated() const { return m_msg1 != nullptr;}
+    [[nodiscard]] Direction direction() const {return m_direction;}
+    void dispatchMsg(Msg::shr_t msg);
+    bool peerIsLocal() const;
+  private:
+    void deleteOld();
+    void do_read();
+    void do_write();
+    bool authenticate(uzel::Msg::shr_t msg);
+    void sendByeAndClose();
+      /**
+       *  shutdown socket and release all related resources, emits signal
+       *  s_closed(shared_from_this()), so it can not be called from ~session()
+       *  */
+    void stop();
+      /**
+       * Same as a stop() above but can be called from destructor as it
+       * does not call emits signal s_closed(shared_from_this())
+       * */
+    void shutdown();
 
-  boost::asio::ip::tcp::socket m_socket;
-  Priority m_priority{Priority::undefined};
-  Direction m_direction;
-  enum { max_length = 1024*1024 };
-  std::array<char, max_length> m_data;
-  uzel::InputProcessor m_processor;
-  MsgQueue m_outQueue;
-  uzel::Msg::shr_t m_msg1; // the very first message is set only after authentication
-  bool m_closeFlag{false};
-  bool m_stopped{false};
-  std::string m_reason{};
-  std::string m_remoteHostName{}; //!< is set only if Direction::outgoing
-  boost::asio::ip::address m_remoteIp{};
-  NetAppContextPtr m_netctx;
-};
+    boost::asio::ip::tcp::socket m_socket;
+    Priority m_priority{Priority::undefined};
+    Direction m_direction;
+    enum { max_length = 1024*1024 };
+    std::array<char, max_length> m_data;
+    uzel::InputProcessor m_processor;
+    MsgQueue m_outQueue;
+    uzel::Msg::shr_t m_msg1; // the very first message is set only after authentication
+    bool m_closeFlag{false};
+    bool m_stopped{false};
+    std::string m_reason{};
+    std::string m_remoteHostName{}; //!< is set only if Direction::outgoing
+    boost::asio::ip::address m_remoteIp{};
+    NetAppContextPtr m_netctx;
+  };
 
   struct AddressHash {
     std::size_t operator()(const boost::asio::ip::address& addr) const {
@@ -154,8 +154,8 @@ private:
   };
 
   using IpToSession = std::unordered_map<boost::asio::ip::address,
-                     std::unordered_set<uzel::session::shr_t>,
-                     AddressHash, AddressEqual>;
+                                         std::unordered_set<uzel::session::shr_t>,
+                                         AddressHash, AddressEqual>;
 
 }
 
