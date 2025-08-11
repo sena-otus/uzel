@@ -34,15 +34,15 @@ session::~session()
 
   bool session::peerIsLocal() const
   {
-    if(authenticated() || !m_msg1) {
-      throw std::logic_error("called peerIsSameNode() on non-authenticated socket");
+    if(!authenticated() || !m_msg1) {
+      throw std::logic_error("called peerIsLocal() on non-authenticated socket");
     }
     return m_msg1->fromLocal();
   }
 
   const std::string& session::peerNode() const
   {
-    if(authenticated() || !m_msg1) {
+    if(!authenticated() || !m_msg1) {
       throw std::logic_error("called peerNode() on non-authenticated socket");
     }
     return m_msg1->from().node();
@@ -50,7 +50,7 @@ session::~session()
 
   const std::string& session::peerApp() const
   {
-    if(authenticated() || !m_msg1) {
+    if(!authenticated() || !m_msg1) {
       throw std::logic_error("called peerApp() on non-authenticated socket");
     }
     return m_msg1->from().app();
