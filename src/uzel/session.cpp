@@ -115,7 +115,7 @@ session::~session()
 void session::start()
 {
   uzel::Msg::ptree body{};
-  body.add("auth.pid", getpid());
+  body.add("pid", getpid());
 
   putOutQueue(std::make_shared<Msg>(uzel::Addr(), "auth", std::move(body)));
   do_read();
