@@ -1,6 +1,7 @@
 #include "netserver.h"
 
 #include "uzel/msg.h"
+#include "uzel/netappbase.h"
 #include <uzel/session.h>
 #include <uzel/uconfig.h>
 #include <uzel/dbg.h>
@@ -13,11 +14,8 @@ using boost::asio::ip::tcp;
 namespace io = boost::asio;
 namespace sys = boost::system;
 
-
-
-
 NetServer::NetServer(io::io_context& io_context, unsigned short port)
-  : uzel::NetAppBase(io_context), m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),
+  : m_netctx(std::make_shared<uzel::NetAppContext>(io_context)), m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),
     m_outman(io_context, aresolver(), m_ipToSession, m_nodeToSession)
 {
     // that throws exception!
@@ -35,6 +33,39 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
   });
   m_outman.startConnecting();
 }
+
+
+  // void NetServer::dispatch(Msg::shr_t msg, session::shr_t ss)
+  // {
+  //   if(msg->toMe()) {
+  //     m_dispatcher.dispatch(*msg, ss);
+  //   }
+
+  //   switch(msg->destType())
+  //   {
+  //     case Msg::DestType::service: {
+  //       handleServiceMsg(msg, ss);
+  //       break;
+  //     }
+  //     case Msg::DestType::local: {
+  //       handleLocalMsg(msg);
+  //       break;
+  //     }
+  //     case Msg::DestType::remote: {
+  //       handleRemoteMsg(msg);
+  //       break;
+  //     }
+  //     case Msg::DestType::localbroadcast: {
+  //       handleLocalBroadcastMsg(msg);
+  //       break;
+  //     }
+  //     case Msg::DestType::broadcast: {
+  //       handleBroadcastMsg(msg);
+  //       break;
+  //     }
+  //   }
+  // }
+
 
 
 void NetServer::onSessionCreated(uzel::session::shr_t newSession)

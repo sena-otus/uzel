@@ -1,51 +1,47 @@
 #pragma once
 
 #include "aresolver.h"
-#include "session.h"
+#include "dispatcher.h"
 
 #include <boost/asio.hpp>
+#include <memory>
 
 namespace uzel
 {
   class session;
+  using SessionPtr = std::shared_ptr<session>;
+  class Msg;
+  using MsgPtr = std::shared_ptr<Msg>;
 
-/** @brief network application base class */
-class NetAppBase
+/** @brief network application context class */
+class NetAppContext
 {
 public:
+  using shr_t = std::shared_ptr<NetAppContext>;
   /**
    * @brief ctor
    * @param io_context asio io context
    */
-  explicit NetAppBase(boost::asio::io_context& io_context);
+  explicit NetAppContext(boost::asio::io_context& io_context);
 
-  NetAppBase(const NetAppBase &) = delete;
-  NetAppBase(NetAppBase &&) = delete;
-  NetAppBase &operator=(const NetAppBase &) = delete;
-  NetAppBase &operator=(NetAppBase &&) = delete;
-  virtual ~NetAppBase() = default;
+  NetAppContext(const NetAppContext &) = delete;
+  NetAppContext(NetAppContext &&) = delete;
+  NetAppContext &operator=(const NetAppContext &) = delete;
+  NetAppContext &operator=(NetAppContext &&) = delete;
+  virtual ~NetAppContext() = default;
 
-  uzel::session::dispatcher_t &dispatcher()  const;
-  virtual void dispatch(Msg::shr_t msg, session::shr_t ss);
+  MsgDispatcher::shr_t dispatcher()  const;
+  virtual void dispatch(MsgPtr msg, SessionPtr ss);
 
-protected:
   boost::asio::io_context& iocontext() const;
   AResolver& aresolver();
 private:
-  virtual void handleServiceMsg(Msg::shr_t msg, session::shr_t ss) = 0;
-  virtual void handleLocalMsg(Msg::shr_t msg) = 0;
-  virtual void handleRemoteMsg(Msg::shr_t msg) = 0;
-  virtual void handleLocalBroadcastMsg(Msg::shr_t msg) = 0;
-  virtual void handleBroadcastMsg(Msg::shr_t msg) = 0;
-
-
-
   const unsigned ResolverThreads = 5;
 
 
   boost::asio::io_context &m_iocontext;
   AResolver m_aresolver;
-  uzel::session::dispatcher_t m_dispatcher;
+  MsgDispatcher::shr_t m_dispatcher;
 };
 
 }

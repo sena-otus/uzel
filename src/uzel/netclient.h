@@ -12,7 +12,7 @@ namespace uzel
   class session;
 
 /** @brief TCP client */
-class NetClient: public uzel::NetAppBase
+class NetClient
 {
 public:
   /**
@@ -27,11 +27,11 @@ public:
   // NetClient &operator=(NetClient &&) = delete;
   // ~NetClient() override = default;
 
-  void handleServiceMsg(uzel::Msg::shr_t msg, uzel::session::shr_t ss) override;
-  void handleLocalMsg(uzel::Msg::shr_t msg) override;
-  void handleRemoteMsg(uzel::Msg::shr_t msg) override;
-  void handleBroadcastMsg(uzel::Msg::shr_t msg) override;
-  void handleLocalBroadcastMsg(uzel::Msg::shr_t msg) override;
+  // void handleServiceMsg(uzel::Msg::shr_t msg, uzel::session::shr_t ss) override;
+  // void handleLocalMsg(uzel::Msg::shr_t msg) override;
+  // void handleRemoteMsg(uzel::Msg::shr_t msg) override;
+  // void handleBroadcastMsg(uzel::Msg::shr_t msg) override;
+  // void handleLocalBroadcastMsg(uzel::Msg::shr_t msg) override;
 
   void send(uzel::Msg::shr_t msg);
   boost::signals2::signal<void ()> s_authSuccess;
@@ -44,6 +44,7 @@ private:
   void reconnectAfterDelay();
   void connectResolved( boost::system::error_code ec,  const boost::asio::ip::tcp::resolver::results_type &rezit, const std::string &hname);
 
+  NetAppContext::shr_t m_netctx;
   std::map<std::string, uzel::session::shr_t> m_locals;
   boost::optional<boost::asio::io_context::work> m_work;
   boost::asio::steady_timer m_reconnectTimer;

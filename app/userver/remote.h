@@ -20,7 +20,7 @@ public:
   remote &operator=(remote &&) = delete;
   ~remote() = default;
 
-  void addSession(session::dispatcher_t &dispatcher, session::shr_t);
+  void addSession(session::shr_t);
   void send(uzel::Msg::shr_t msg);
   [[nodiscard]] bool connected() const;
   [[nodiscard]] size_t sessionCount() const;

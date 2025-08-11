@@ -1,6 +1,7 @@
 #pragma once
 
 #include "remote.h"
+#include "uzel/netappbase.h"
 #include "uzel/session.h"
 #include <uzel/enum.h>
 #include <uzel/aresolver.h>
@@ -49,8 +50,7 @@ class OutgoingManager final
 {
 public:
   explicit OutgoingManager(
-    boost::asio::io_context& iocontext,
-    AResolver &resolver,
+    NetAppContext::shr_t,
     const uzel::IpToSession &ipToSession,
     const uzel::NodeToSession &nodeToSession);
 
@@ -77,8 +77,7 @@ private:
 
 
 // continue private section: variable members
-  boost::asio::io_context& m_iocontext;
-  AResolver &m_aresolver;
+  NetAppContext::shr_t m_netctx;
   const uzel::IpToSession &m_ipToSession;
   const uzel::NodeToSession &m_nodeToSession;
   UMap m_connectTo; ///!< map remote hostnames to be connected to their status

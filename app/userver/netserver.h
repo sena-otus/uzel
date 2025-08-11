@@ -19,7 +19,7 @@ namespace uzel
 
 
 /** @brief tcp server */
-class NetServer: public uzel::NetAppBase
+class NetServer
 {
 public:
     /**
@@ -33,11 +33,11 @@ public:
   void forward(uzel::Msg::shr_t msg);
 private:
   void do_accept();
-  void handleServiceMsg(uzel::Msg::shr_t msg, uzel::session::shr_t ss) override;
-  void handleLocalMsg(uzel::Msg::shr_t msg) override;
-  void handleRemoteMsg(uzel::Msg::shr_t msg) override;
-  void handleBroadcastMsg(uzel::Msg::shr_t msg) override;
-  void handleLocalBroadcastMsg(uzel::Msg::shr_t msg) override;
+  void handleServiceMsg(uzel::Msg::shr_t msg, uzel::session::shr_t ss);
+  void handleLocalMsg(uzel::Msg::shr_t msg);
+  void handleRemoteMsg(uzel::Msg::shr_t msg);
+  void handleBroadcastMsg(uzel::Msg::shr_t msg);
+  void handleLocalBroadcastMsg(uzel::Msg::shr_t msg);
 
   void connectResolved( boost::system::error_code ec,  boost::asio::ip::tcp::resolver::results_type rezit, const std::string &hname);
   void reconnectAfterDelay(const std::string &hname);
@@ -59,4 +59,5 @@ private:
   std::map<std::string, uzel::session::shr_t> m_locals;
   uzel::NodeToSession m_nodeToSession; ///<! map nodes to sessions
   uzel::OutgoingManager m_outman;
+  uzel::NetAppContext::shr_t m_netctx;
 };

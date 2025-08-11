@@ -50,7 +50,8 @@ namespace uzel
 
   using MsgQueue = std::deque<QueuedMsg>;
 
-  class NetAppBase;
+  class NetAppContext;
+  using NetAppContextPtr = std::shared_ptr<NetAppContext>;
 /**
  * class session handles one single (tcp) connection (there can be several between two remotes)
  * For incoming messages it uses uzel::Inputprocessor for initial
@@ -62,9 +63,8 @@ class session
 public:
   using shr_t = std::shared_ptr<session>;
   using asiotcp = boost::asio::ip::tcp;
-  using dispatcher_t = MsgDispatcher<session::shr_t>;
 
-  explicit session(NetAppBase &na, asiotcp::socket socket, Direction direction, boost::asio::ip::address ip, std::string remoteHostName = "");
+  explicit session(NetAppContextPtr netctx, asiotcp::socket socket, Direction direction, boost::asio::ip::address ip, std::string remoteHostName = "");
   ~session();
 
   session(const session &other) = delete;
@@ -150,7 +150,7 @@ private:
   std::string m_reason{};
   std::string m_remoteHostName{}; //!< is set only if Direction::outgoing
   boost::asio::ip::address m_remoteIp{};
-  NetAppBase &m_netapp;
+  NetAppContextPtr m_netctx;
 };
 
   struct AddressHash {
