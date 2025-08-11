@@ -56,7 +56,7 @@ namespace uzel {
     boost::asio::dispatch(m_strand, [self = shared_from_this(), msg = std::move(msg)]{
       const auto cname = msg->cname();
 
-      BOOST_LOG_TRIVIAL(debug) << "dispacthing cname '" << cname << "'";
+      BOOST_LOG_TRIVIAL(debug) << "dispatching cname '" << cname << "'";
 
         // dispatch to cname handlers only if message is to myself
       if(msg->toMe())
