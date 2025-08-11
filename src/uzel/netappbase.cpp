@@ -8,7 +8,8 @@ namespace uzel
 {
 
   NetAppContext::NetAppContext(boost::asio::io_context& io_context)
-    :  m_iocontext(io_context), m_aresolver{ResolverThreads, io_context}
+    :  m_iocontext(io_context), m_aresolver{ResolverThreads, io_context},
+       m_dispatcher(std::make_shared<MsgDispatcher>(io_context.get_executor()))
   {
   }
 

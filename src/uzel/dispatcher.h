@@ -81,32 +81,15 @@ namespace uzel {
       std::function<void()> m_disconnect;
     };
 
-    explicit MsgDispatcher(const boost::asio::any_io_executor& ex)
-      : m_strand(boost::asio::make_strand(ex)) {}
+    explicit MsgDispatcher(const boost::asio::any_io_executor& ex);
+
+    void assertShared() const;
 
       // Multicast: append a handler for specific cname.
-    Connection registerHandler(const std::string& cname, Handler handler) {
-      const auto id = m_nextId++;
-      boost::asio::dispatch(m_strand, [this, cname, id, handler = std::move(handler)]() mutable {
-        auto& entry = m_handlers[cname];
-        HandlerVec newv = entry ? *entry : HandlerVec{};
-        newv.emplace_back(id, std::move(handler));
-          // small optimization: keep capacity growth amortized
-        entry = std::make_shared<const HandlerVec>(std::move(newv));
-      });
-      return makeDisconnect(cname, id, Bucket::Cname);
-    }
+    Connection registerHandler(const std::string& cname, Handler handler);
 
       // Any-post hook (append). Called after per-cname handlers.
-    Connection registerAnyPost(Handler h) {
-      const auto id = m_nextId++;
-      boost::asio::dispatch(m_strand, [this, id, h = std::move(h)]() mutable {
-        HandlerVec newv = m_anyPost ? *m_anyPost : HandlerVec{};
-        newv.emplace_back(id, std::move(h));
-        m_anyPost = std::make_shared<const HandlerVec>(std::move(newv));
-      });
-      return makeDisconnect(std::string{}, id, Bucket::AnyPost);
-    }
+    Connection registerAnyPost(Handler h);
 
       // Dispatch (no copies of handler vectors)
     void dispatch(std::shared_ptr<const Msg> msg);
@@ -122,10 +105,8 @@ namespace uzel {
     boost::asio::any_io_executor get_executor() const noexcept {
       return m_strand.get_inner_executor();
     }
-
   private:
     enum class Bucket { Cname, AnyPost };
-
     Connection makeDisconnect(std::string cname, Id id, Bucket bucket);
       // members
     boost::asio::strand<boost::asio::any_io_executor> m_strand;
