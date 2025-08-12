@@ -30,7 +30,6 @@ public:
 
 
   void auth(uzel::session::shr_t ss);
-  void forward(uzel::Msg::shr_t msg);
 private:
   void do_accept();
   void handleServiceMsg(uzel::Msg::shr_t msg, uzel::session::shr_t ss);

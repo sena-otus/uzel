@@ -6,9 +6,7 @@
 #include <boost/asio.hpp>
 #include <unordered_map>
 #include <vector>
-#include <optional>
 #include <functional>
-#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <memory>

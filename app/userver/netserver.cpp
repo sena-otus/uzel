@@ -21,7 +21,12 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
     // that throws exception!
     // TODO:  check how to properly set an option
     // m_acceptor.set_option(boost::asio::ip::v6_only(false));
+
+    // accept connections
   do_accept();
+
+    // add all hosts hosts that are listed in config to the
+    // OutgoingManager connection list:
   auto to_connect_to = uzel::UConfigS::getUConfig().remotes();
   for(auto && rhost : to_connect_to)
   {
@@ -29,7 +34,7 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
   }
 
   m_outman.s_sessionCreated.connect([&](uzel::session::shr_t ss) {
-      onSessionCreated(ss);
+    onSessionCreated(ss);
   });
   m_outman.startConnecting();
 }

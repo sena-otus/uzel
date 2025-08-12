@@ -13,7 +13,9 @@ namespace uzel
   class Msg;
   using MsgPtr = std::shared_ptr<Msg>;
 
-/** @brief network application context class */
+    /** @brief network application context class
+     * keeps several important classes that are important
+     * for the network apps */
   class NetAppContext final
   {
   public:
@@ -31,7 +33,6 @@ namespace uzel
     virtual ~NetAppContext() = default;
 
     MsgDispatcher::shr_t dispatcher()  const;
-    void dispatch(MsgPtr msg, SessionPtr ss);
 
     boost::asio::io_context& iocontext() const;
     AResolver& aresolver();

@@ -16,7 +16,7 @@ OutgoingManager::OutgoingManager(
   NetAppContext::shr_t netctx,
   const uzel::IpToSession &ipToSession,
   const uzel::NodeToSession &nodeToSession)
-  : m_netctx(netctx), m_ipToSession(ipToSession), m_nodeToSession(nodeToSession)
+  : m_netctx(std::move(netctx)), m_ipToSession(ipToSession), m_nodeToSession(nodeToSession)
 {
 }
 

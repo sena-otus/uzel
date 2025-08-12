@@ -2,7 +2,6 @@
 #include "aresolver.h"
 #include "dispatcher.h"
 #include "session.h"
-#include "msg.h"
 
 namespace uzel
 {
