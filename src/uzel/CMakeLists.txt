@@ -5,7 +5,7 @@ add_library(uzel
   uconfig.cpp
   session.cpp
   netclient.cpp
-  netappbase.cpp
+  netappcontext.cpp
   dispatcher.cpp
 )
 

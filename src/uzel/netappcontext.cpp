@@ -1,4 +1,4 @@
-#include "netappbase.h"
+#include "netappcontext.h"
 #include "aresolver.h"
 #include "dispatcher.h"
 #include "session.h"

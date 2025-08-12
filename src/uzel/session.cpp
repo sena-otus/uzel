@@ -2,7 +2,7 @@
 #include "addr.h"
 #include "dbg.h"
 #include "msg.h"
-#include "netappbase.h"
+#include "netappcontext.h"
 
 #include <boost/asio.hpp>
 #include <boost/log/trivial.hpp>

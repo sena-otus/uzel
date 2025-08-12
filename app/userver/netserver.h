@@ -6,7 +6,7 @@
 #include <uzel/aresolver.h>
 #include <uzel/session.h>
 #include <uzel/dispatcher.h>
-#include <uzel/netappbase.h>
+#include <uzel/netappcontext.h>
 
 #include <boost/asio.hpp>
 #include <map>

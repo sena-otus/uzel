@@ -1,7 +1,7 @@
 #include "netserver.h"
 
 #include "uzel/msg.h"
-#include "uzel/netappbase.h"
+#include "uzel/netappcontext.h"
 #include <uzel/session.h>
 #include <uzel/uconfig.h>
 #include <uzel/dbg.h>

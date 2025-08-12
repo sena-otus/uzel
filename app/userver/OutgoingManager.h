@@ -1,7 +1,7 @@
 #pragma once
 
 #include "remote.h"
-#include "uzel/netappbase.h"
+#include "uzel/netappcontext.h"
 #include "uzel/session.h"
 #include <uzel/enum.h>
 #include <uzel/aresolver.h>

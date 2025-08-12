@@ -2,7 +2,7 @@
 
 #include "aresolver.h"
 #include "session.h"
-#include "netappbase.h"
+#include "netappcontext.h"
 
 #include <boost/asio.hpp>
 #include <map>
