@@ -118,7 +118,9 @@ void OutgoingManager::connectResolved(const sys::error_code ec, const tcp::resol
   size_t sessionsToCreate{0};
 
   auto ipit = m_ipToSession.find(rezit->endpoint().address());
-  if(ipit != m_ipToSession.end()) {
+  if(ipit == m_ipToSession.end()) {
+    sessionsToCreate = 2;
+  } else {
     for(auto && sit : ipit->second) {
       if(sit->direction() == +uzel::Direction::outgoing) {
         ++sessions;
