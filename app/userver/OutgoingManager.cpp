@@ -60,8 +60,8 @@ void OutgoingManager::startConnecting(std::shared_ptr<io::steady_timer> timer)
         }
       }
       break;
-      case +HostStatus::connecting:  [[fallthrough]] ;
-      case +HostStatus::resolving:
+      case +HostStatus::connecting:  [[fallthrough]] ; // check timeout?
+      case +HostStatus::resolving:  [[fallthrough]] ; // check timeout?
       case +HostStatus::connected:
           // do nothing
         break;
@@ -91,7 +91,8 @@ void OutgoingManager::connectResolved(const sys::error_code ec, const tcp::resol
 
   BOOST_LOG_TRIVIAL(info) << "resolved "  << rezit->host_name() << "->" << rezit->endpoint();
 
-  auto ipit = m_ipToSession.find(rezit->endpoint().address());
+  rh.setAddr(rezit->endpoint().address());
+
 
     // If we have 1 outgoing authenticated session to that IP and
     // another authenticated session (with any IP, incoming or outgoing)
@@ -108,49 +109,63 @@ void OutgoingManager::connectResolved(const sys::error_code ec, const tcp::resol
     // that IP, we need at least one outgoing to be sure node name is
     // the same.
     //
-    // Recomendation: remote nodes that are resolvable to their IP make
-    // life simpler.
+    // Recomendation: remote nodes names that are resolvable to their IP
+    // make life simpler.
 
 
   size_t sessions{0};
   size_t unauthsessions{0};
+  size_t sessionsToCreate{0};
+
+  auto ipit = m_ipToSession.find(rezit->endpoint().address());
   if(ipit != m_ipToSession.end()) {
     for(auto && sit : ipit->second) {
       if(sit->direction() == +uzel::Direction::outgoing) {
         ++sessions;
         if(!sit->authenticated()) {
           ++unauthsessions;
-        }
-        if(sit->authenticated()) {
+        } else {
           auto nodeit = m_nodeToSession.find(sit->peerNode());
           if(nodeit != m_nodeToSession.end())
           {
             if(nodeit->second.sessionCount() >= 2)
             {
+              BOOST_LOG_TRIVIAL(debug) << "there are already "  << nodeit->second.sessionCount()
+                                       << " authenticated sessions with '" << sit->peerNode()
+                                       << "', so do not create a new one, set status to connected";
               if(rh.status() != +HostStatus::connected) { rh.setStatus(HostStatus::connected); }
-              BOOST_LOG_TRIVIAL(debug) << "there are already "  << sessions
-                                       << " authenticated sessions, so do not create a new one, set status to connected";
               return;
             }
           }
         }
       }
     }
+      // here we know, that we are not done with connecting
     if(sessions >= 2) {
       if(unauthsessions > 0) {
-          // wait for authentication
+          // wait for connection and authentication
         if(rh.status() != +HostStatus::connecting) { rh.setStatus(HostStatus::connecting); }
         BOOST_LOG_TRIVIAL(debug) << "there are "  << sessions
                                  << " outgoing sessions, but " << unauthsessions
                                  << " are not authenticated, wait for authentication";
         return;
       }
+        // We have more than one outgoing authenticated sessions to
+        // that IP all with different node names
+        // How is that possible?
+        // * node name was changed and connection to old name is still
+        //   not closed: just wait until the old connection will be closed
+        //   or create one more connection
+        // * some special routing/forwarding/proxying magic in action:
+        //   create one more connection
+      sessionsToCreate = 1;
+    } else {
+      sessionsToCreate = 2 - sessions;
     }
   }
 
-  rh.setAddr(rezit->endpoint().address());
   rh.setStatus(HostStatus::connecting);
-  while(sessions < 2)
+  while(sessionsToCreate != 0)
   {
     tcp::socket sock{m_netctx->iocontext()};
     auto unauth = std::make_shared<uzel::session>(m_netctx, std::move(sock), uzel::Direction::outgoing, rezit->endpoint().address(), rh.hostname());
@@ -165,8 +180,9 @@ void OutgoingManager::connectResolved(const sys::error_code ec, const tcp::resol
     });
     unauth->startConnection(rezit);
     sessions++;
+    sessionsToCreate--;
   }
-  rh.setStatus(HostStatus::connected);
+  rh.setStatus(HostStatus::connecting);
 }
 
 }

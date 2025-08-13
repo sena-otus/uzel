@@ -83,6 +83,7 @@ private:
   UMap m_connectTo; ///!< map remote hostnames to be connected to their status
   const int RefreshHostStatus_sec{15};
   const int DelayReconnect_sec{30};
+  const int ActionTimeout_sec{15};
 };
 
 
