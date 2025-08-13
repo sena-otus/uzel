@@ -8,7 +8,7 @@
 
 #include <boost/log/trivial.hpp>
 #include <algorithm>
-//#include <functional>
+#include <memory>
 
 using boost::asio::ip::tcp;
 namespace io = boost::asio;

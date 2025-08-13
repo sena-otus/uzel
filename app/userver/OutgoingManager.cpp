@@ -93,46 +93,57 @@ void OutgoingManager::connectResolved(const sys::error_code ec, const tcp::resol
 
   auto ipit = m_ipToSession.find(rezit->endpoint().address());
 
-    // If we have already 2 outgoing sessions to that IP, then stop.
-    // Do not count incoming connections from the same IP, they may be
-    // not from the same host because of the NAT, redirections, etc.
+    // If we have 1 outgoing authenticated session to that IP and
+    // another authenticated session (with any IP, incoming or outgoing)
+    // with the same remote node, then do not create one more connection,
+    // mark that remote name as "connected" and return.
     //
-    // But if we have 1 outgoing authenticated session to that IP and
-    // another authenticated session with the same node, then we should
-    // stop too
+    // else if we have already 2+ outgoing sessions to that IP and one or
+    // more are not authenticated, then do not create one more
+    // connection, mark that remote name as "connecting" and return.
+    //
+    // else create 2 outgoing sessions to that IP.
+    //
+    // Note: even if we have 2 incoming authenticated connections from
+    // that IP, we need at least one outgoing to be sure node name is
+    // the same.
+    //
+    // Recomendation: remote nodes that are resolvable to their IP make
+    // life simpler.
 
-  size_t sessions = 0;
-  std::string outgoingnode;
+
+  size_t sessions{0};
+  size_t unauthsessions{0};
   if(ipit != m_ipToSession.end()) {
     for(auto && sit : ipit->second) {
       if(sit->direction() == +uzel::Direction::outgoing) {
         ++sessions;
-        if(sessions >= 2) {
-          if(rh.status() != +HostStatus::connected) { rh.setStatus(HostStatus::connected); }
-
-          BOOST_LOG_TRIVIAL(debug) << "there are already "  << sessions
-                                   << " outgoing sessions, so do not create a new one, set status to connected";
-          return;
+        if(!sit->authenticated()) {
+          ++unauthsessions;
         }
         if(sit->authenticated()) {
-            // remember the node name
-          outgoingnode = sit->peerNode();
+          auto nodeit = m_nodeToSession.find(sit->peerNode());
+          if(nodeit != m_nodeToSession.end())
+          {
+            if(nodeit->second.sessionCount() >= 2)
+            {
+              if(rh.status() != +HostStatus::connected) { rh.setStatus(HostStatus::connected); }
+              BOOST_LOG_TRIVIAL(debug) << "there are already "  << sessions
+                                       << " authenticated sessions, so do not create a new one, set status to connected";
+              return;
+            }
+          }
         }
       }
     }
-    if(!outgoingnode.empty()) {
-        // now we should check if we have 2 authenticated sessions with that node
-      auto nodeit = m_nodeToSession.find(outgoingnode);
-      if(nodeit != m_nodeToSession.end())
-      {
-        if(nodeit->second.sessionCount() >= 2)
-        {
-          if(rh.status() != +HostStatus::connected) { rh.setStatus(HostStatus::connected); }
-
-          BOOST_LOG_TRIVIAL(debug) << "there are already "  << sessions
-                                   << " authenticated sessions, so do not create a new one, set status to connected";
-          return;
-        }
+    if(sessions >= 2) {
+      if(unauthsessions > 0) {
+          // wait for authentication
+        if(rh.status() != +HostStatus::connecting) { rh.setStatus(HostStatus::connecting); }
+        BOOST_LOG_TRIVIAL(debug) << "there are "  << sessions
+                                 << " outgoing sessions, but " << unauthsessions
+                                 << " are not authenticated, wait for authentication";
+        return;
       }
     }
   }
