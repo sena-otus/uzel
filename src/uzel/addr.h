@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ostream>
 #include <string>
 
 namespace uzel
@@ -16,9 +17,12 @@ namespace uzel
     explicit Addr(const std::string &fulladdr);
     [[nodiscard]] const std::string& app() const {return m_appname;}
     [[nodiscard]] const std::string& node() const {return m_nodename;}
+    friend std::ostream& operator<<(std::ostream& os, const Addr& addr);
   private:
     Addr(const std::string &fulladdr, size_t atpos);
     std::string m_appname;
     std::string m_nodename;
   };
+
+  std::ostream &operator<<(std::ostream &os, const Addr &addr);
 };

@@ -19,4 +19,14 @@ namespace uzel {
     : Addr(fulladdr, fulladdr.find('@'))
   {
   }
-}
+
+  std::ostream &operator<<(std::ostream &os, const Addr &addr) {
+    if (addr.m_appname.empty() && addr.m_nodename.empty()) {
+      os << "<>";
+      return os;
+    }
+    os << '<' << addr.m_appname << '@' << addr.m_nodename << '>';
+    return os;
+  }
+
+} // namespace uzel

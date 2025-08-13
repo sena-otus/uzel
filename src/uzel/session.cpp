@@ -2,6 +2,7 @@
 #include "addr.h"
 #include "dbg.h"
 #include "msg.h"
+#include "dump.h"
 #include "netappcontext.h"
 
 #include <boost/asio.hpp>
@@ -251,12 +252,12 @@ namespace uzel
   }
 
 
+
 //NOLINTBEGIN(misc-no-recursion)
   void session::do_write()
   {
     deleteOld();
     if(outQueueEmpty()) return;
-    BOOST_LOG_TRIVIAL(debug) << DBGOUT << " before write queue "  << &(m_outQueue) << " size: " << m_outQueue.size();
     boost::asio::async_write(
       m_socket, boost::asio::buffer(m_outQueue.front().rawmsg()),
       [self = shared_from_this()](boost::system::error_code ec, std::size_t /*length*/)
@@ -266,9 +267,9 @@ namespace uzel
             self->s_send_error();
             self->stop();
           } else {
-            BOOST_LOG_TRIVIAL(debug) << DBGOUT << " after write queue "  << &(self->m_outQueue) << " size: " << self->m_outQueue.size();
-            const auto &rawmsg = self->m_outQueue.front().rawmsg();
-            BOOST_LOG_TRIVIAL(debug) << DBGOUT << "writing succeed " << std::string_view(rawmsg.data(), rawmsg.size());
+            BOOST_LOG_TRIVIAL(debug) << "session '"<< self
+                                     << "': writing succeed, queue size+1: " << self->m_outQueue.size()
+                                     << ", message: " << dump(self->m_outQueue.front().rawmsg());
             self->m_outQueue.pop_front();
             self->deleteOld();
               // do not wait until everything from outQueue will be sent and queue will become empty,
@@ -289,10 +290,9 @@ namespace uzel
 
   void session::putOutQueue(uzel::Msg::shr_t msg)
   {
-    BOOST_LOG_TRIVIAL(debug) << DBGOUT << " inserting message to '" << msg->dest().app() << "@" << msg->dest().node() << "' into the output queue " << &m_outQueue;
     const bool wasEmpty = m_outQueue.empty();
     m_outQueue.emplace_back(msg);
-    BOOST_LOG_TRIVIAL(debug) << DBGOUT << " inserted, new output queue size is: " << m_outQueue.size();
+    BOOST_LOG_TRIVIAL(debug) << "session '"<< this << "': insert new message to " << msg->dest() << ", new output queue size is: " << m_outQueue.size();
     if(wasEmpty) {
       do_write();
     }
