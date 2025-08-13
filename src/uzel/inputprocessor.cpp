@@ -21,7 +21,7 @@ namespace uzel
           {
             auto node = m_header->get<std::string>("from.n", "?");
             auto appn = m_header->get<std::string>("from.a", "?");
-            BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "got header of the msg from " << appn << "@"  << node << " processed line: '" << *line << "'";
+            BOOST_LOG_TRIVIAL(debug) << "got header of the msg from <" << appn << "@"  << node << ">: '" << *line << "'";
           }
             // body can be inside header for small messages
           auto bodyit = m_header->find("body");

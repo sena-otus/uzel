@@ -39,6 +39,7 @@ private:
   MsgQueue m_outHighQueue; ///! high prirority outgoing queue
   MsgQueue m_outLowQueue; ///! low priority outgoing queue
   NetAppContext::shr_t m_netctx;
+  MsgDispatcher::Connection m_priorityH;
 };
 
   using NodeToSession = std::unordered_map<std::string, remote>;

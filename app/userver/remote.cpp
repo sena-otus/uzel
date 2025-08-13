@@ -1,4 +1,5 @@
 #include "remote.h"
+#include "uzel/dbg.h"
 #include "uzel/session.h"
 
 #include <boost/log/trivial.hpp>
@@ -16,7 +17,7 @@ remote::remote(NetAppContext::shr_t netctx, std::string nodename)
 void remote::addSession(session::shr_t ss)
 {
   ss->s_closed.connect([&](session::shr_t ss) { onSessionClosed(ss);});
-  m_netctx->dispatcher()->registerHandler("priority", [this](const Msg &msg){ handlePriorityMsg(msg); });
+  m_priorityH = m_netctx->dispatcher()->registerHandler("priority", [this](const Msg &msg){ handlePriorityMsg(msg); });
 
     // who is the boss?
   if(ss->peerNode() > uzel::UConfigS::getUConfig().nodeName()) {
@@ -64,6 +65,7 @@ void remote::addSession(session::shr_t ss)
 
   void remote::handlePriorityMsg(const Msg &msg)
   {
+    BOOST_LOG_TRIVIAL(debug) << DBGOUTF << " called!";
     if (auto ss = msg.origin().lock()) {
       m_sessionWaitForRemote.erase(ss);
       auto prio = msg.pbody().get<Priority>("priority", Priority::undefined);

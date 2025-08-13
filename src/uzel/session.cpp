@@ -92,7 +92,8 @@ namespace uzel
     }
     m_msg1 = msg;
     BOOST_LOG_TRIVIAL(info) << "authenticated "<< (isLocal ? "local" : "remote")
-                            << " connection from " << m_msg1->from().app() << "@" << m_msg1->from().node();
+                            << " " << m_direction._to_string()
+                            << " connection from " << m_msg1->from();
     return true;
   }
 

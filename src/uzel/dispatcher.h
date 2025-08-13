@@ -1,7 +1,5 @@
 #pragma once
 
-//#include "msg.h"
-
 #include <utility> // need to be before boost/asio.hpp
 #include <boost/asio.hpp>
 #include <unordered_map>
