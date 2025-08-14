@@ -92,6 +92,7 @@ void NetServer::do_accept()
         if (!ec) {
           auto raddr = socket.remote_endpoint().address();
           auto unauth = std::make_shared<uzel::session>(m_netctx, std::move(socket), uzel::Direction::incoming, raddr);
+          BOOST_LOG_TRIVIAL(debug) << "session '"<<unauth << "' created incoming";
           onSessionCreated(unauth);
           if(m_ipToSession[raddr].size() > MaxConnectionsWithAddr) {
             unauth->gracefullClose("connection refused: too many connections");

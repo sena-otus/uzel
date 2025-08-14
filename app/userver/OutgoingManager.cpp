@@ -175,6 +175,7 @@ void OutgoingManager::connectResolved(const sys::error_code ec, const tcp::resol
   {
     tcp::socket sock{m_netctx->iocontext()};
     auto unauth = std::make_shared<uzel::session>(m_netctx, std::move(sock), uzel::Direction::outgoing, rezit->endpoint().address(), rh.hostname());
+    BOOST_LOG_TRIVIAL(debug) << "session '"<<unauth << "' created outgoing";
     s_sessionCreated(unauth);
 
     unauth->s_closed.connect([&](uzel::session::shr_t ss) {
