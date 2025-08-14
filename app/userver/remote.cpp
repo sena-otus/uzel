@@ -3,6 +3,7 @@
 #include "uzel/session.h"
 
 #include <boost/log/trivial.hpp>
+#include <stdexcept>
 
 namespace uzel
 {
@@ -65,9 +66,17 @@ void remote::addSession(session::shr_t ss)
 
   void remote::handlePriorityMsg(const Msg &msg)
   {
-    BOOST_LOG_TRIVIAL(debug) << DBGOUTF << " called!";
     if (auto ss = msg.origin().lock()) {
-      m_sessionWaitForRemote.erase(ss);
+      size_t erased = m_sessionWaitForRemote.erase(ss);
+      if(ss->priority() != +Priority::undefined) {
+        if(ss == m_sessionH || ss == m_sessionL) {
+          BOOST_LOG_TRIVIAL(error) << m_node << ": attempt to reset session priority, ignoring...";
+          return;
+        }
+        BOOST_LOG_TRIVIAL(error) << m_node << ": closing weird stray session " << ss;
+        ss->gracefullClose("stray connection");
+        return;
+      }
       auto prio = msg.pbody().get<Priority>("priority", Priority::undefined);
       switch(prio)
       {
@@ -76,6 +85,7 @@ void remote::addSession(session::shr_t ss)
           ss->setPriority(Priority::low);
           auto sessionToClose = m_sessionL;
           m_sessionL = ss;
+          BOOST_LOG_TRIVIAL(debug) << m_node << ": got low priority session";
           if(sessionToClose) {
             sessionToClose->gracefullClose("overtaken by new connection");
           }
@@ -86,6 +96,7 @@ void remote::addSession(session::shr_t ss)
           ss->setPriority(Priority::high);
           auto sessionToClose = m_sessionH;
           m_sessionH = ss;
+          BOOST_LOG_TRIVIAL(debug) << m_node << ": got high priority session";
           if(sessionToClose) {
             sessionToClose->gracefullClose("overtaken by new connection");
           }
@@ -94,10 +105,13 @@ void remote::addSession(session::shr_t ss)
         default:
         case Priority::undefined:
         {
+          BOOST_LOG_TRIVIAL(error) << m_node << ": udefined priority from remote!";
           ss->gracefullClose("got undefined priority from remote");
           break;
         }
       }
+    } else {
+      BOOST_LOG_TRIVIAL(warning) << m_node << ": session is gone";
     }
   }
 
