@@ -166,6 +166,10 @@ void OutgoingManager::connectResolved(const sys::error_code ec, const tcp::resol
     }
   }
 
+  BOOST_LOG_TRIVIAL(debug) << "Before creation: outgoing sessions: " << sessions
+                           << ", unauthenticated: "  << unauthsessions
+                           << ", sessions to create: " << sessionsToCreate;
+
   rh.setStatus(HostStatus::connecting);
   while(sessionsToCreate != 0)
   {
@@ -182,9 +186,12 @@ void OutgoingManager::connectResolved(const sys::error_code ec, const tcp::resol
     });
     unauth->startConnection(rezit);
     sessions++;
+    unauthsessions++;
     sessionsToCreate--;
   }
   rh.setStatus(HostStatus::connecting);
+  BOOST_LOG_TRIVIAL(debug) << "Exiting connectResolved with outgoing sessions: " << sessions
+                           << ", unauthenticated: "  << unauthsessions;
 }
 
 }
