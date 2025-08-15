@@ -135,10 +135,9 @@ namespace uzel {
             auto nodeit = m_nodeToSession.find(sit->peerNode());
             if(nodeit != m_nodeToSession.end())
             {
-              if(nodeit->second.sessionCount() >= 2)
+              if(nodeit->second.connected())
               {
-                BOOST_LOG_TRIVIAL(debug) << "there are already "  << nodeit->second.sessionCount()
-                                         << " authenticated sessions with '" << sit->peerNode()
+                BOOST_LOG_TRIVIAL(debug) << "there are already enough authenticated sessions with '" << sit->peerNode()
                                          << "', so do not create a new one, set status to connected";
                 if(rh.status() != +HostStatus::connected) { rh.setStatus(HostStatus::connected); }
                 return;
@@ -192,6 +191,7 @@ namespace uzel {
       unauth->s_connect_error.connect([&](const std::string &hname){
         rh.setStatus(HostStatus::connection_error);
       });
+
       unauth->startConnection(rezit);
       sessions++;
       unauthsessions++;

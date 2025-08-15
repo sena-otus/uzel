@@ -23,7 +23,6 @@ public:
   void addSession(session::shr_t);
   void send(uzel::Msg::shr_t msg);
   [[nodiscard]] bool connected() const;
-  [[nodiscard]] size_t sessionCount() const;
   void handlePriorityMsg(const uzel::Msg &msg);
 private:
   explicit remote(std::string &&nodeName);
@@ -36,6 +35,7 @@ private:
   std::unordered_set<session::shr_t> m_sessionWaitForRemote; ///! keeps list of tcp sessions
   session::shr_t m_sessionH;
   session::shr_t m_sessionL;
+  session::shr_t m_sessionC;
   MsgQueue m_outHighQueue; ///! high prirority outgoing queue
   MsgQueue m_outLowQueue; ///! low priority outgoing queue
   NetAppContext::shr_t m_netctx;

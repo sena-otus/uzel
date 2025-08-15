@@ -57,9 +57,16 @@ namespace uzel
         ss->putOutQueue(std::make_shared<uzel::Msg>(uzel::Addr(), "priority", std::move(body)));
         ss->takeOverMessages(m_outLowQueue);
       } else {
-        BOOST_LOG_TRIVIAL(debug) << "got duplicated connection with '" << m_node
-                                 << "' = " << ss << ", will be closed";
-        ss->gracefullClose("duplicated connection");
+        if(m_sessionC == nullptr &&
+           m_sessionH->direction() == +Direction::incoming &&
+           m_sessionL->direction() == +Direction::incoming &&
+           ss->direction() == +Direction::outgoing) {
+          m_sessionC = ss;
+        } else {
+          BOOST_LOG_TRIVIAL(debug) << "got too many connections with '" << m_node
+                                   << "' = " << ss << ", will be closed";
+          ss->gracefullClose("duplicated connection");
+        }
       }
     }
   }
@@ -102,6 +109,17 @@ namespace uzel
           }
           break;
         }
+        case Priority::control:
+        {
+          ss->setPriority(Priority::control);
+          auto sessionToClose = m_sessionC;
+          m_sessionC = ss;
+          BOOST_LOG_TRIVIAL(debug) << m_node << ": got control priority session";
+          if(sessionToClose) {
+            sessionToClose->gracefullClose("overtaken by new connection");
+          }
+          break;
+        }
         default:
         case Priority::undefined:
         {
@@ -121,11 +139,6 @@ namespace uzel
     return m_sessionH && m_sessionL;
   }
 
-  size_t remote::sessionCount() const
-  {
-    return m_sessionWaitForRemote.size() + (m_sessionH ? 1 : 0) + (m_sessionL ? 1 : 0);
-  }
-
   void remote::onSessionClosed(session::shr_t ss)
   {
     BOOST_LOG_TRIVIAL(debug) << "error on session " << ss << ", excluding it from list";
@@ -140,6 +153,7 @@ namespace uzel
     }
     if(m_sessionH == ss) m_sessionH.reset();
     if(m_sessionL == ss) m_sessionL.reset();
+    if(m_sessionC == ss) m_sessionC.reset();
   }
 
 

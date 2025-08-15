@@ -25,7 +25,7 @@
 namespace uzel
 {
     // uint8_t does not work well with boost::ptree...
-  BETTER_ENUM(Priority, uint16_t, undefined=255, low = 0, high = 10); //NOLINT
+  BETTER_ENUM(Priority, uint16_t, undefined=255, low = 0, high = 10, control); //NOLINT
   BETTER_ENUM(Direction, uint8_t, incoming = 0, outgoing); //NOLINT
 
   inline const int64_t MessageTTL_sec = 60;
