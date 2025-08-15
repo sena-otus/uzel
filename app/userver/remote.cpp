@@ -126,7 +126,6 @@ namespace uzel
     return m_sessionWaitForRemote.size() + (m_sessionH ? 1 : 0) + (m_sessionL ? 1 : 0);
   }
 
-
   void remote::onSessionClosed(session::shr_t ss)
   {
     BOOST_LOG_TRIVIAL(debug) << "error on session " << ss << ", excluding it from list";

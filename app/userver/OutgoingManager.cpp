@@ -118,15 +118,20 @@ namespace uzel {
     size_t sessionsToCreate{0};
 
     auto ipit = m_ipToSession.find(rezit->endpoint().address());
+
     if(ipit == m_ipToSession.end()) {
+      BOOST_LOG_TRIVIAL(debug) << "did not found sessions for IP '"<<rezit->endpoint() << " will create 2 more connections";
       sessionsToCreate = 2;
     } else {
       for(auto && sit : ipit->second) {
+        BOOST_LOG_TRIVIAL(debug) << "found session "<< sit << " for IP '"<< rezit->endpoint();
         if(sit->direction() == +uzel::Direction::outgoing) {
+          BOOST_LOG_TRIVIAL(debug) << "it is outgoing";
           ++sessions;
           if(!sit->authenticated()) {
             ++unauthsessions;
           } else {
+            BOOST_LOG_TRIVIAL(debug) << "it is authenticated";
             auto nodeit = m_nodeToSession.find(sit->peerNode());
             if(nodeit != m_nodeToSession.end())
             {
@@ -140,6 +145,8 @@ namespace uzel {
               }
             }
           }
+        }   else {
+          BOOST_LOG_TRIVIAL(debug) << "it is incoming";
         }
       }
         // here we know, that we are not done with connecting

@@ -76,7 +76,7 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
 void NetServer::onSessionCreated(uzel::session::shr_t newSession)
 {
   m_ipToSession[newSession->remoteIp()].insert(newSession);
-
+  BOOST_LOG_TRIVIAL(debug) << "inserted session '"<< newSession << "' into m_ipToSession, m_ipToSession.size: " << m_ipToSession.size() << ",  m_ipToSession[" <<  newSession->remoteIp() << "].size(): " << m_ipToSession[newSession->remoteIp()].size();
   newSession->s_closed.connect([&](uzel::session::shr_t ss){ onSessionClosed(ss);});
   newSession->s_auth.connect([&](uzel::session::shr_t ss){ auth(ss); });
 //  newSession->s_dispatch.connect([&](uzel::Msg::shr_t msg, uzel::session::shr_t ss){ dispatch(msg,ss);});
