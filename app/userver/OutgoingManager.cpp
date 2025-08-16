@@ -130,7 +130,7 @@ namespace uzel {
           if(!sit->authenticated()) {
             ++unauthsessions;
           } else {
-            BOOST_LOG_TRIVIAL(debug) << "it is authenticated";
+            BOOST_LOG_TRIVIAL(debug) << "it is authenticated as " << sit->peerNode();
             auto nodeit = m_nodeToSession.find(sit->peerNode());
             if(nodeit != m_nodeToSession.end())
             {
@@ -144,7 +144,7 @@ namespace uzel {
             }
           }
         }   else {
-          BOOST_LOG_TRIVIAL(debug) << "it is incoming";
+          BOOST_LOG_TRIVIAL(debug) << "it is incoming - skip";
         }
       }
         // here we know, that we are not done with connecting
