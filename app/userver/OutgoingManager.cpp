@@ -183,7 +183,7 @@ namespace uzel {
       BOOST_LOG_TRIVIAL(debug) << "session '"<<unauth << "' created outgoing";
       s_sessionCreated(unauth);
 
-      unauth->s_closed.connect([&](uzel::session::shr_t ss) {
+      unauth->s_closed.connect([&]() {
         rh.setStatus(HostStatus::closed);
       });
 

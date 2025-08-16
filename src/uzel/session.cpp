@@ -314,7 +314,7 @@ namespace uzel
     m_closeFlag = true;
 
       // signal everybody interested
-    s_closed(shared_from_this());
+    s_closed();
   }
 
   void session::shutdown()

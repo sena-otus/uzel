@@ -84,7 +84,7 @@ namespace uzel
     boost::signals2::signal<void ()> s_send_error;
     boost::signals2::signal<void ()> s_recv_error;
     boost::signals2::signal<void ()> s_connected;
-    boost::signals2::signal<void (session::shr_t ss)> s_closed;
+    boost::signals2::signal<void ()> s_closed;
       // NOLINTEND(misc-non-private-member-variables-in-classes,cppcoreguidelines-non-private-member-variables-in-classes)
 
     Priority priority() const { return m_priority;}

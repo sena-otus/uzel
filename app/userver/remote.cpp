@@ -17,7 +17,7 @@ namespace uzel
 
   void remote::addSession(session::shr_t ss)
   {
-    ss->s_closed.connect([&](session::shr_t ss) { onSessionClosed(ss);});
+    ss->s_closed.connect([&, ss]() { onSessionClosed(ss);});
     m_priorityH = m_netctx->dispatcher()->registerHandler("priority", [this](const Msg &msg){ handlePriorityMsg(msg); });
 
       // who is the boss?
