@@ -75,7 +75,6 @@ namespace uzel {
     BOOST_LOG_TRIVIAL(debug) << DBGOUT << " resolving " << rh.hostname() << "...";
     m_netctx->aresolver().async_resolve<tcp>(rh.hostname(), "32300",
                                              [this,&rh](const sys::error_code ec, const tcp::resolver::results_type resit){
-                                               BOOST_LOG_TRIVIAL(debug) << DBGOUT;
                                                connectResolved(ec,resit,rh);
                                              });
   }
@@ -119,8 +118,8 @@ namespace uzel {
 
     auto ipit = m_ipToSession.find(rezit->endpoint().address());
 
-    if(ipit == m_ipToSession.end()) {
-      BOOST_LOG_TRIVIAL(debug) << "did not found sessions for IP '"<<rezit->endpoint() << " will create 2 more connections";
+    if(ipit == m_ipToSession.end()|| ipit->second.empty()) {
+      BOOST_LOG_TRIVIAL(debug) << "there are no sessions for IP '"<< rezit->endpoint() << ", will create 2 connections";
       sessionsToCreate = 2;
     } else {
       for(auto && sit : ipit->second) {

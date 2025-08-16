@@ -56,17 +56,19 @@ namespace uzel
         body.add("priority", static_cast<uzel::Priority>(uzel::Priority::low));
         ss->putOutQueue(std::make_shared<uzel::Msg>(uzel::Addr(), "priority", std::move(body)));
         ss->takeOverMessages(m_outLowQueue);
+      } else if(!m_sessionC &&
+                m_sessionH->direction() == +Direction::incoming &&
+                m_sessionL->direction() == +Direction::incoming &&
+                ss->direction() == +Direction::outgoing) {
+        ss->setPriority(uzel::Priority::control);
+        m_sessionC = ss;
+        uzel::Msg::ptree body{};
+        body.add("priority", static_cast<uzel::Priority>(uzel::Priority::control));
+        ss->putOutQueue(std::make_shared<uzel::Msg>(uzel::Addr(), "priority", std::move(body)));
       } else {
-        if(m_sessionC == nullptr &&
-           m_sessionH->direction() == +Direction::incoming &&
-           m_sessionL->direction() == +Direction::incoming &&
-           ss->direction() == +Direction::outgoing) {
-          m_sessionC = ss;
-        } else {
-          BOOST_LOG_TRIVIAL(debug) << "got too many connections with '" << m_node
-                                   << "' = " << ss << ", will be closed";
-          ss->gracefullClose("duplicated connection");
-        }
+        BOOST_LOG_TRIVIAL(debug) << "got too many connections with '" << m_node
+                                 << "' = " << ss << ", will be closed";
+        ss->gracefullClose("duplicated connection");
       }
     }
   }
@@ -141,13 +143,13 @@ namespace uzel
 
   void remote::onSessionClosed(session::shr_t ss)
   {
-    BOOST_LOG_TRIVIAL(debug) << "error on session " << ss << ", excluding it from list";
+    BOOST_LOG_TRIVIAL(debug) << "error on session " << ss << ", excluding it from waiting list";
     for(auto ssi = m_sessionWaitForRemote.begin(); ssi != m_sessionWaitForRemote.end(); ++ssi)
     {
       if(*ssi == ss)
       {
         m_sessionWaitForRemote.erase(ssi);
-        BOOST_LOG_TRIVIAL(debug) << "excluded, new list size is " << m_sessionWaitForRemote.size();
+        BOOST_LOG_TRIVIAL(debug) << "excluded, new waiting list size is " << m_sessionWaitForRemote.size();
         return;
       }
     }
