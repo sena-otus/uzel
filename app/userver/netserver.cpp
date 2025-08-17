@@ -23,6 +23,9 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
     // TODO:  check how to properly set an option
     // m_acceptor.set_option(boost::asio::ip::v6_only(false));
 
+    // forward priority message to the corresponding remote channel
+  m_priorityH = m_netctx->dispatcher()->registerHandler("priority", [this](const uzel::Msg &msg){ handlePriorityMsg(msg); });
+
     // accept connections
   do_accept();
 
@@ -41,36 +44,42 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
 }
 
 
-  // void NetServer::dispatch(Msg::shr_t msg, session::shr_t ss)
-  // {
-  //   if(msg->toMe()) {
-  //     m_dispatcher.dispatch(*msg, ss);
-  //   }
+void NetServer::handlePriorityMsg(const uzel::Msg& msg)
+{
+  auto remoteIt = m_nodeToSession.find(msg.from().node());
+  if(remoteIt == m_nodeToSession.end()) {
+    return;
+  }
+  remoteIt->second.handlePriorityMsg(msg);
+}
 
-  //   switch(msg->destType())
-  //   {
-  //     case Msg::DestType::service: {
-  //       handleServiceMsg(msg, ss);
-  //       break;
-  //     }
-  //     case Msg::DestType::local: {
-  //       handleLocalMsg(msg);
-  //       break;
-  //     }
-  //     case Msg::DestType::remote: {
-  //       handleRemoteMsg(msg);
-  //       break;
-  //     }
-  //     case Msg::DestType::localbroadcast: {
-  //       handleLocalBroadcastMsg(msg);
-  //       break;
-  //     }
-  //     case Msg::DestType::broadcast: {
-  //       handleBroadcastMsg(msg);
-  //       break;
-  //     }
-  //   }
-  // }
+
+void NetServer::handleAny(uzel::Msg::shr_t msg)
+{
+  switch(msg->destType())
+  {
+    case uzel::Msg::DestType::service: {
+      handleServiceMsg(msg);
+      break;
+    }
+    case uzel::Msg::DestType::local: {
+      handleLocalMsg(msg);
+      break;
+    }
+    case uzel::Msg::DestType::remote: {
+      handleRemoteMsg(msg);
+      break;
+    }
+    case uzel::Msg::DestType::localbroadcast: {
+      handleLocalBroadcastMsg(msg);
+      break;
+    }
+    case uzel::Msg::DestType::broadcast: {
+      handleBroadcastMsg(msg);
+      break;
+    }
+  }
+}
 
 
 
@@ -137,6 +146,10 @@ uzel::remote &NetServer::findAddRemote(const std::string &node)
     BOOST_LOG_TRIVIAL(info) << "found existing remote channel for node " << node;
   }
   return remoteIt->second;
+}
+
+void NetServer::handleServiceMsg(uzel::Msg::shr_t  /*msg*/)
+{
 }
 
 

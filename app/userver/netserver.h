@@ -37,7 +37,10 @@ public:
   void auth(uzel::session::shr_t ss);
 private:
   void do_accept();
-  void handleServiceMsg(uzel::Msg::shr_t msg, uzel::session::shr_t ss);
+  void handlePriorityMsg(const uzel::Msg &msg);
+
+  void handleAny(uzel::Msg::shr_t msg);
+  void handleServiceMsg(uzel::Msg::shr_t msg);
   void handleLocalMsg(uzel::Msg::shr_t msg);
   void handleRemoteMsg(uzel::Msg::shr_t msg);
   void handleBroadcastMsg(uzel::Msg::shr_t msg);
@@ -64,4 +67,5 @@ private:
   std::map<std::string, uzel::session::shr_t> m_locals;
   uzel::NodeToSession m_nodeToSession; ///<! map nodes to sessions
   uzel::OutgoingManager m_outman;
+  uzel::MsgDispatcher::Connection m_priorityH;
 };

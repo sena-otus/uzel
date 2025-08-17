@@ -172,6 +172,7 @@ namespace uzel {
   {
     m_destType = DestType::local;
     m_toMe = false;
+      // m_toOthers = false;
     auto dest   = m_header.get<std::string>("to.n", "");
     auto appn = m_header.get<std::string>("to.a", "");
     m_dest = Addr(appn, dest);
@@ -183,23 +184,34 @@ namespace uzel {
     if(dest.empty()) {
       if(appn == UConfigS::getUConfig().appName()) {
         m_toMe = true;
+      } else {
+        // m_toOthers = true;
       }
       return;
     }
     if(dest == UConfigS::getUConfig().nodeName()) {
       if(appn == UConfigS::getUConfig().appName()) {
         m_toMe = true;
+      } else {
+          // m_toOthers = true;
       }
       if(appn == "*") {
         m_destType = DestType::localbroadcast;
         m_toMe = true;
+          // m_toOthers = true;
       }
       return;
     }
     if(dest == "*") {
       m_destType = DestType::broadcast;
-      if(appn == UConfigS::getUConfig().appName() || appn == "*") {
+      if(appn == UConfigS::getUConfig().appName()) {
         m_toMe = true;
+      } else {
+          // m_toOthers = true;
+      }
+      if(appn == "*") {
+        m_toMe = true;
+          // m_toOthers = true;
       }
       return;
     }

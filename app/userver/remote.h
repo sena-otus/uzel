@@ -29,17 +29,16 @@ private:
 
   void onSessionClosed(session::shr_t ss);
 
-  std::string m_node; ///! remote node name - known only after authentication
-  std::string m_hname; ///! remote hostname (if known) that was used to connect to
-  std::string m_addr; ///! last known remote address
-  std::unordered_set<session::shr_t> m_sessionWaitForRemote; ///! keeps list of tcp sessions
-  session::shr_t m_sessionH;
-  session::shr_t m_sessionL;
-  session::shr_t m_sessionC;
-  MsgQueue m_outHighQueue; ///! high prirority outgoing queue
-  MsgQueue m_outLowQueue; ///! low priority outgoing queue
+  std::string m_node; ///< remote node name - known only after authentication
+  std::string m_hname; ///< remote hostname (if known) that was used to connect to
+  std::string m_addr; ///< last known remote address
+  std::unordered_set<session::shr_t> m_sessionWaitForRemote; ///!< keeps list of tcp sessions
+  session::shr_t m_sessionH; ///< high priority session
+  session::shr_t m_sessionL; ///< low priority session
+  session::shr_t m_sessionC; ///< control session (always outgoing), if low and high are incoming
+  MsgQueue m_outHighQueue; ///< high prirority outgoing message queue
+  MsgQueue m_outLowQueue; ///< low priority outgoing message queue
   NetAppContext::shr_t m_netctx;
-  MsgDispatcher::Connection m_priorityH;
 };
 
   using NodeToSession = std::unordered_map<std::string, remote>;
