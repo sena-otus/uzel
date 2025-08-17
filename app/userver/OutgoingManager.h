@@ -63,7 +63,15 @@ public:
   using UMap = std::unordered_map<std::string, RemoteHostToConnect>;
 
   void startConnecting(const std::string &hname);
-  void startConnecting();
+
+    /** call to start outgoing connections */
+  void start();
+
+    /**
+     * Pull the next tick forward to "now".
+     * Call this from anywhere (any thread) when a connection just closed
+     **/
+  void poke();
 
     // NOLINTBEGIN(misc-non-private-member-variables-in-classes,cppcoreguidelines-non-private-member-variables-in-classes)
   boost::signals2::signal<void (uzel::session::shr_t unauth)> s_sessionCreated;
@@ -71,13 +79,16 @@ public:
 
 
 private:
-  void startConnecting(std::shared_ptr<boost::asio::steady_timer> timer);
+  void scheduleNext(int seconds);
+  void startConnecting();
   void startResolving(RemoteHostToConnect &rh);
   void connectResolved(const boost::system::error_code ec, const boost::asio::ip::tcp::resolver::results_type rezit, RemoteHostToConnect &rh);
 
 
 // continue private section: variable members
   NetAppContext::shr_t m_netctx;
+  boost::asio::strand<boost::asio::any_io_executor> m_strand;
+  boost::asio::steady_timer m_timer;
   const uzel::IpToSession &m_ipToSession;
   const uzel::NodeToSession &m_nodeToSession;
   UMap m_connectTo; ///!< map remote hostnames to be connected to their status

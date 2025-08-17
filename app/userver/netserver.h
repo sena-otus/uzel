@@ -27,7 +27,12 @@ public:
      * @param io_context boost::asio io context
      * @param port TCP port to accept connections */
   NetServer(boost::asio::io_context& io_context, unsigned short port);
-
+  NetServer() = delete;
+  NetServer(const NetServer&) = delete;
+  NetServer& operator=(const NetServer&) = delete;
+  NetServer(NetServer&&) = delete;
+  NetServer& operator=(NetServer&&) = delete;
+  virtual ~NetServer() = default;
 
   void auth(uzel::session::shr_t ss);
 private:

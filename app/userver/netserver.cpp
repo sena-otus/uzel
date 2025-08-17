@@ -15,7 +15,8 @@ namespace io = boost::asio;
 namespace sys = boost::system;
 
 NetServer::NetServer(io::io_context& io_context, unsigned short port)
-  : m_netctx(std::make_shared<uzel::NetAppContext>(io_context)), m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),
+  : m_netctx(std::make_shared<uzel::NetAppContext>(io_context)),
+    m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),
     m_outman(m_netctx, m_ipToSession, m_nodeToSession)
 {
     // that throws exception!
@@ -36,7 +37,7 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
   m_outman.s_sessionCreated.connect([&](uzel::session::shr_t ss) {
     onSessionCreated(ss);
   });
-  m_outman.startConnecting();
+  m_outman.start();
 }
 
 

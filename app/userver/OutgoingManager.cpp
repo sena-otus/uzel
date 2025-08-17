@@ -7,7 +7,6 @@
 #include <uzel/session.h>
 
 using boost::asio::ip::tcp;
-namespace io = boost::asio;
 namespace sys = boost::system;
 
 namespace uzel {
@@ -16,7 +15,8 @@ namespace uzel {
     NetAppContext::shr_t netctx,
     const uzel::IpToSession &ipToSession,
     const uzel::NodeToSession &nodeToSession)
-    : m_netctx(std::move(netctx)), m_ipToSession(ipToSession), m_nodeToSession(nodeToSession)
+    : m_netctx(std::move(netctx)), m_strand(m_netctx->iocontext().get_executor()), m_timer(m_strand),
+      m_ipToSession(ipToSession), m_nodeToSession(nodeToSession)
   {
   }
 
@@ -28,20 +28,37 @@ namespace uzel {
   }
 
 
-  void OutgoingManager::startConnecting() {
-    auto timer = std::make_shared<io::steady_timer>(m_netctx->iocontext(), io::chrono::seconds(RefreshHostStatus_sec));
-    startConnecting(timer);
+  void OutgoingManager::start() {
+    scheduleNext(0);
   }
 
-  void OutgoingManager::startConnecting(std::shared_ptr<io::steady_timer> timer)
+  void OutgoingManager::poke() {
+    boost::asio::post(m_strand, [this]{
+        // affects the existing async_wait
+      m_timer.expires_after(std::chrono::seconds(0));
+    });
+  }
+
+
+  void OutgoingManager::scheduleNext(int seconds) {
+    m_timer.expires_after(std::chrono::seconds(seconds));
+    m_timer.async_wait(
+      boost::asio::bind_executor(
+        m_strand,
+        [this](const boost::system::error_code& ec) {
+          if (ec) {
+              // timer is canceled
+            return;
+          }
+          startConnecting(); // do actual work
+          scheduleNext(RefreshHostStatus_sec); // re-arm regular cadence
+        }));
+  }
+
+
+  void OutgoingManager::startConnecting()
   {
     auto now = std::chrono::steady_clock::now();
-
-    timer->expires_after(boost::asio::chrono::seconds(RefreshHostStatus_sec));
-    timer->async_wait([&,timer](const sys::error_code&  /*ec*/){
-      startConnecting(timer);
-    });
-
 
     for(auto && hit : m_connectTo) {
       switch(hit.second.status())
@@ -85,6 +102,7 @@ namespace uzel {
     if(ec) {
       BOOST_LOG_TRIVIAL(error) << "error resolving '" << rh.hostname() << "': "<<  ec.message();
       rh.setStatus(HostStatus::resolving_error);
+      poke();
       return;
     }
 
@@ -185,11 +203,13 @@ namespace uzel {
 
       unauth->s_closed.connect([&]() {
         rh.setStatus(HostStatus::closed);
+        poke();
       });
 
-      unauth->s_connect_error.connect([&](const std::string &hname){
-        rh.setStatus(HostStatus::connection_error);
-      });
+        // follwoing not needed, as session::s_closed() will be fired:
+        // unauth->s_connect_error.connect([&](const std::string &hname){
+        //   rh.setStatus(HostStatus::connection_error);
+        // });
 
       unauth->startConnection(rezit);
       sessions++;
