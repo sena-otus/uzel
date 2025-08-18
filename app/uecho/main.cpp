@@ -1,9 +1,8 @@
 #include "uzel/dbg.h"
-#include "uzel/session.h"
+#include "uzel/dispatcher.h"
 #include <boost/log/trivial.hpp>
 #include <uzel/netclient.h>
 
-#include <iostream>
 
 /** simple echo app that will echo all messages back */
 
@@ -17,14 +16,14 @@ public:
   explicit NetPrinter(boost::asio::io_context& io_context)
     : NetClient(io_context, 32300)
   {
-    netctx()->dispatcher()->registerHandler("ping", [this](const uzel::Msg &msg){
+    m_ping = netctx()->dispatcher()->registerHandler("ping", [this](const uzel::Msg &msg) {
       BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "Got message: " << "ping";
       send(std::make_shared<uzel::Msg>(msg.from(), msg));
     });
   }
 
 private:
-
+  uzel::MsgDispatcher::Connection m_ping;
 };
 
 

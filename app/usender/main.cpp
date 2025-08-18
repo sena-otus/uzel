@@ -20,11 +20,11 @@ class NetPrinter : public uzel::NetClient
 public:
   explicit NetPrinter(boost::asio::io_context& io_context, uzel::Addr addr)
     : NetClient(io_context, 32300),  m_sendTimer(io_context, io::chrono::seconds(send_s)), m_addrto(std::move(addr))
-  {
-    s_authSuccess.connect([&](){
-      BOOST_LOG_TRIVIAL(debug) << DBGOUT << "auth is fired, calling sendMsg()";
+    {
+      s_authSuccess.connect([&](){
+        BOOST_LOG_TRIVIAL(debug) << DBGOUT << "auth is fired, calling sendMsg()";
       sendMsg();});
-  }
+    }
 
   void dispatch(uzel::Msg::shr_t msg, uzel::session::shr_t)
   {
