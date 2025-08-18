@@ -11,15 +11,21 @@
 
 namespace uzel {
   class Msg;
+  using ShrMsg = std::shared_ptr<Msg>;
+  using ShrConstMsg = std::shared_ptr<const Msg>;
 
   class MsgDispatcher : public std::enable_shared_from_this<MsgDispatcher> {
   public:
     using shr_t   = std::shared_ptr<MsgDispatcher>;
-    using Handler = std::function<void(const Msg&)>;
     using Id      = std::uint64_t;
+    using Handler = std::function<void(const Msg&)>;
     using IHPair  = std::pair<Id, Handler>;
     using HandlerVec     = std::vector<IHPair>;
     using HandlerVecPtr  = std::shared_ptr<const HandlerVec>;
+    using HandlerShr = std::function<void(ShrMsg)>;
+    using IHSPair  = std::pair<Id, HandlerShr>;
+    using HandlerShrVec     = std::vector<IHSPair>;
+    using HandlerShrVecPtr  = std::shared_ptr<const HandlerShrVec>;
 
     class Connection {
     public:
@@ -46,10 +52,10 @@ namespace uzel {
     Connection registerHandler(const std::string& cname, Handler handler);
 
       // Any-post hook (append). Called after per-cname handlers.
-    Connection registerAnyPost(Handler h);
+    Connection registerAnyPost(HandlerShr handler);
 
-      // Dispatch (no copies of handler vectors)
-    void dispatch(std::shared_ptr<const Msg> msg);
+      // Dispatch
+    void dispatch(ShrMsg msg);
 
       /** unregister all handlers for given cname */
     void unregisterAll(const std::string& cname) {
@@ -70,7 +76,7 @@ namespace uzel {
       // cname -> snapshot of handlers
     std::unordered_map<std::string, HandlerVecPtr> m_handlers;
       // any-post snapshot
-    HandlerVecPtr m_anyPost;
+    HandlerShrVecPtr m_anyPost;
     Id m_nextId{1};
   };
 }

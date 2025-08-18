@@ -35,20 +35,20 @@ namespace uzel {
   }
 
 
-  MsgDispatcher::Connection MsgDispatcher::registerAnyPost(Handler h)
+  MsgDispatcher::Connection MsgDispatcher::registerAnyPost(HandlerShr handler)
   {
     assertShared();
     const auto id = m_nextId++;
-    boost::asio::dispatch(m_strand, [this, id, h = std::move(h)]() mutable {
-      HandlerVec newv = m_anyPost ? *m_anyPost : HandlerVec{};
+    boost::asio::dispatch(m_strand, [this, id, h = std::move(handler)]() mutable {
+      HandlerShrVec newv = m_anyPost ? *m_anyPost : HandlerShrVec{};
       newv.emplace_back(id, std::move(h));
-      m_anyPost = std::make_shared<const HandlerVec>(std::move(newv));
+      m_anyPost = std::make_shared<const HandlerShrVec>(std::move(newv));
     });
     return makeDisconnect(std::string{}, id, Bucket::AnyPost);
   }
 
 
-  void MsgDispatcher::dispatch(Msg::shr_const_t msg)
+  void MsgDispatcher::dispatch(Msg::shr_t msg)
   {
     assertShared();
 
@@ -67,8 +67,8 @@ namespace uzel {
         }
         if (per)  for (const auto& kv : *per)  kv.second(*msg);
       }
-      HandlerVecPtr post = self->m_anyPost;
-      if (post) for (const auto& kv : *post) kv.second(*msg);
+      HandlerShrVecPtr post = self->m_anyPost;
+      if (post) for (const auto& kv : *post) kv.second(msg);
     });
   }
 
@@ -90,12 +90,12 @@ namespace uzel {
             else it->second = std::make_shared<const HandlerVec>(std::move(newhv));
           } else {
             if (!self->m_anyPost) return;
-            HandlerVec newhv = *self->m_anyPost;
+            HandlerShrVec newhv = *self->m_anyPost;
             newhv.erase(std::remove_if(newhv.begin(), newhv.end(),
                                        [&](auto& kv){ return kv.first == id; }),
                         newhv.end());
             if (newhv.empty()) self->m_anyPost.reset();
-            else self->m_anyPost = std::make_shared<const HandlerVec>(std::move(newhv));
+            else self->m_anyPost = std::make_shared<const HandlerShrVec>(std::move(newhv));
           }
         });
       }

@@ -26,6 +26,9 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
     // forward priority message to the corresponding remote channel
   m_priorityH = m_netctx->dispatcher()->registerHandler("priority", [this](const uzel::Msg &msg){ handlePriorityMsg(msg); });
 
+      // install special handler for routing
+  m_anyH = m_netctx->dispatcher()->registerAnyPost([this](uzel::Msg::shr_t msg){ handleAny(msg); });
+
     // accept connections
   do_accept();
 

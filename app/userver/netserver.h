@@ -68,4 +68,5 @@ private:
   uzel::NodeToSession m_nodeToSession; ///<! map nodes to sessions
   uzel::OutgoingManager m_outman;
   uzel::MsgDispatcher::Connection m_priorityH;
+  uzel::MsgDispatcher::Connection m_anyH;
 };
