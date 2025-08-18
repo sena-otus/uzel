@@ -13,7 +13,7 @@ BETTER_ENUM(HostStatus, int8_t, initial, resolving, resolving_error, connecting,
 
 namespace uzel {
 
-/** Status of the remote host to connect to */
+    /** Status of the remote host to connect to */
   class RemoteHostToConnect
   {
   public:
@@ -45,10 +45,12 @@ namespace uzel {
   };
 
 
-/** Maintain outgoing connections to remote hosts (no listen/accept here) */
+    /** Maintain outgoing connections to remote hosts (no listen/accept here) */
   class OutgoingManager final
   {
   public:
+    using UMap = std::unordered_map<std::string, RemoteHostToConnect>;
+
     explicit OutgoingManager(
       NetAppContext::shr_t,
       const uzel::IpToSession &ipToSession,
@@ -60,7 +62,6 @@ namespace uzel {
     OutgoingManager(const OutgoingManager &other) = delete;
     ~OutgoingManager() = default;
 
-    using UMap = std::unordered_map<std::string, RemoteHostToConnect>;
 
     void startConnecting(const std::string &hname);
 

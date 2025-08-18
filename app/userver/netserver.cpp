@@ -19,14 +19,10 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
     m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),
     m_outman(m_netctx, m_ipToSession, m_nodeToSession)
 {
-    // that throws exception!
-    // TODO:  check how to properly set an option
-    // m_acceptor.set_option(boost::asio::ip::v6_only(false));
-
-    // forward priority message to the corresponding remote channel
+    // install handle for priority message
   m_priorityH = m_netctx->dispatcher()->registerHandler("priority", [this](const uzel::Msg &msg){ handlePriorityMsg(msg); });
 
-      // install special handler for routing
+      // install special handler to route messages
   m_anyH = m_netctx->dispatcher()->registerAnyPost([this](uzel::Msg::shr_t msg){ handleAny(msg); });
 
     // accept connections
@@ -43,6 +39,8 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
   m_outman.s_sessionCreated.connect([&](uzel::session::shr_t ss) {
     onSessionCreated(ss);
   });
+
+    // start connecting
   m_outman.start();
 }
 
@@ -84,6 +82,54 @@ void NetServer::handleAny(uzel::Msg::shr_t msg)
   }
 }
 
+
+void NetServer::handleServiceMsg(uzel::Msg::shr_t  /*msg*/)
+{
+}
+
+
+void NetServer::handleLocalMsg(uzel::Msg::shr_t msg)
+{
+  auto lit = m_locals.find(msg->dest().app());
+  if(lit != m_locals.end()) {
+    lit->second->putOutQueue(msg);
+  }
+}
+
+void NetServer::handleLocalBroadcastMsg(uzel::Msg::shr_t msg)
+{
+  std::ranges::for_each(m_locals,
+                        [&msg](auto &sp){
+                          sp.second->putOutQueue(msg);
+                        });
+
+}
+
+
+void NetServer::handleBroadcastMsg(uzel::Msg::shr_t msg)
+{
+  std::ranges::for_each(m_nodeToSession,
+           [&msg](auto &sp) { sp.second.send(msg); });
+}
+
+
+void NetServer::handleRemoteMsg(uzel::Msg::shr_t msg)
+{
+    // first check if there are
+    // special routing rules for that node
+
+  std::string target = msg->dest().node();
+  auto viaNode = route(target);
+
+  if(!viaNode)
+  {
+    BOOST_LOG_TRIVIAL(error) << "Can not find route to '" << target << "', message is dropped";
+    return;
+  }
+
+  auto &remote = findAddRemote(*viaNode);
+  remote.send(msg);
+}
 
 
 void NetServer::onSessionCreated(uzel::session::shr_t newSession)
@@ -149,54 +195,6 @@ uzel::remote &NetServer::findAddRemote(const std::string &node)
     BOOST_LOG_TRIVIAL(info) << "found existing remote channel for node " << node;
   }
   return remoteIt->second;
-}
-
-void NetServer::handleServiceMsg(uzel::Msg::shr_t  /*msg*/)
-{
-}
-
-
-void NetServer::handleLocalMsg(uzel::Msg::shr_t msg)
-{
-  auto lit = m_locals.find(msg->dest().app());
-  if(lit != m_locals.end()) {
-    lit->second->putOutQueue(msg);
-  }
-}
-
-void NetServer::handleLocalBroadcastMsg(uzel::Msg::shr_t msg)
-{
-  std::ranges::for_each(m_locals,
-                        [&msg](auto &sp){
-                          sp.second->putOutQueue(msg);
-                        });
-
-}
-
-
-void NetServer::handleBroadcastMsg(uzel::Msg::shr_t msg)
-{
-  std::ranges::for_each(m_nodeToSession,
-           [&msg](auto &sp) { sp.second.send(msg); });
-}
-
-
-void NetServer::handleRemoteMsg(uzel::Msg::shr_t msg)
-{
-    // first check if there are
-    // special routing rules for that node
-
-  std::string target = msg->dest().node();
-  auto viaNode = route(target);
-
-  if(!viaNode)
-  {
-    BOOST_LOG_TRIVIAL(error) << "Can not find route to '" << target << "', message is dropped";
-    return;
-  }
-
-  auto &remote = findAddRemote(*viaNode);
-  remote.send(msg);
 }
 
 
