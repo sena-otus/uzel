@@ -14,9 +14,10 @@ namespace uzel {
   OutgoingManager::OutgoingManager(
     NetAppContext::shr_t netctx,
     const uzel::IpToSession &ipToSession,
-    const uzel::NodeToSession &nodeToSession)
+    const uzel::NodeToSession &nodeToSession, unsigned port)
     : m_netctx(std::move(netctx)), m_strand(m_netctx->iocontext().get_executor()), m_timer(m_strand),
-      m_ipToSession(ipToSession), m_nodeToSession(nodeToSession)
+      m_ipToSession(ipToSession), m_nodeToSession(nodeToSession),
+      m_port(port)
   {
   }
 
@@ -24,7 +25,7 @@ namespace uzel {
     if(uzel::UConfigS::getUConfig().isLocalNode(hname)) {
       return;
     }
-    m_connectTo.emplace(hname, RemoteHostToConnect(hname));
+    m_connectTo.emplace(hname, std::make_shared<RemoteHostToConnect>(hname, std::to_string(m_port)));
   }
 
 
@@ -61,7 +62,7 @@ namespace uzel {
     auto now = std::chrono::steady_clock::now();
 
     for(auto && hit : m_connectTo) {
-      switch(hit.second.status())
+      switch(hit.second->status())
       {
         case +HostStatus::initial:
         {
@@ -72,7 +73,7 @@ namespace uzel {
         case +HostStatus::resolving_error:
         case +HostStatus::closed:
         {
-          if(std::chrono::duration_cast<std::chrono::seconds>(now - hit.second.statusChangeTS()).count() > DelayReconnect_sec) {
+          if(std::chrono::duration_cast<std::chrono::seconds>(now - hit.second->statusChangeTS()).count() > DelayReconnect_sec) {
             startResolving(hit.second);
           }
         }
@@ -86,29 +87,29 @@ namespace uzel {
     }
   }
 
-  void OutgoingManager::startResolving(RemoteHostToConnect &rh)
+  void OutgoingManager::startResolving(RemoteHostToConnect::shr_t rh)
   {
-    rh.setStatus(HostStatus::resolving);
-    BOOST_LOG_TRIVIAL(debug) << DBGOUT << " resolving " << rh.hostname() << "...";
-    m_netctx->aresolver().async_resolve<tcp>(rh.hostname(), "32300",
-                                             [this,&rh](const sys::error_code ec, const tcp::resolver::results_type resit){
+    rh->setStatus(HostStatus::resolving);
+    BOOST_LOG_TRIVIAL(debug) << DBGOUT << " resolving " << rh->hostname() << "...";
+    m_netctx->aresolver().async_resolve<tcp>(rh->hostname(), rh->service(),
+                                             [this, rh](const sys::error_code ec, const tcp::resolver::results_type resit){
                                                connectResolved(ec,resit,rh);
                                              });
   }
 
 
-  void OutgoingManager::connectResolved(const sys::error_code ec, const tcp::resolver::results_type rezit, RemoteHostToConnect &rh)
+  void OutgoingManager::connectResolved(const sys::error_code ec, const tcp::resolver::results_type rezit, RemoteHostToConnect::shr_t rh)
   {
     if(ec) {
-      BOOST_LOG_TRIVIAL(error) << "error resolving '" << rh.hostname() << "': "<<  ec.message();
-      rh.setStatus(HostStatus::resolving_error);
+      BOOST_LOG_TRIVIAL(error) << "error resolving '" << rh->hostname() << "': "<<  ec.message();
+      rh->setStatus(HostStatus::resolving_error);
       poke();
       return;
     }
 
     BOOST_LOG_TRIVIAL(info) << "resolved "  << rezit->host_name() << "->" << rezit->endpoint();
 
-    rh.setAddr(rezit->endpoint().address());
+    rh->setAddr(rezit->endpoint().address());
 
 
       // If we have 1 outgoing authenticated session to that IP and
@@ -156,7 +157,7 @@ namespace uzel {
               {
                 BOOST_LOG_TRIVIAL(debug) << "there are already enough authenticated sessions with '" << sit->peerNode()
                                          << "', so do not create a new one, set status to connected";
-                if(rh.status() != +HostStatus::connected) { rh.setStatus(HostStatus::connected); }
+                if(rh->status() != +HostStatus::connected) { rh->setStatus(HostStatus::connected); }
                 return;
               }
             }
@@ -169,7 +170,7 @@ namespace uzel {
       if(sessions >= 2) {
         if(unauthsessions > 0) {
             // wait for connection and authentication
-          if(rh.status() != +HostStatus::connecting) { rh.setStatus(HostStatus::connecting); }
+          if(rh->status() != +HostStatus::connecting) { rh->setStatus(HostStatus::connecting); }
           BOOST_LOG_TRIVIAL(debug) << "there are "  << sessions
                                    << " outgoing sessions, but " << unauthsessions
                                    << " are not authenticated, wait for authentication";
@@ -193,16 +194,16 @@ namespace uzel {
                              << ", unauthenticated: "  << unauthsessions
                              << ", sessions to create: " << sessionsToCreate;
 
-    rh.setStatus(HostStatus::connecting);
+    rh->setStatus(HostStatus::connecting);
     while(sessionsToCreate != 0)
     {
       tcp::socket sock{m_netctx->iocontext()};
-      auto unauth = std::make_shared<uzel::session>(m_netctx, std::move(sock), uzel::Direction::outgoing, rezit->endpoint().address(), rh.hostname());
+      auto unauth = std::make_shared<uzel::session>(m_netctx, std::move(sock), uzel::Direction::outgoing, rezit->endpoint().address(), rh->hostname());
       BOOST_LOG_TRIVIAL(debug) << "session '"<<unauth << "' created outgoing";
       s_sessionCreated(unauth);
 
-      unauth->s_closed.connect([&]() {
-        rh.setStatus(HostStatus::closed);
+      unauth->s_closed.connect([&,rh]() {
+        rh->setStatus(HostStatus::closed);
         poke();
       });
 
@@ -216,7 +217,7 @@ namespace uzel {
       unauthsessions++;
       sessionsToCreate--;
     }
-    rh.setStatus(HostStatus::connecting);
+    rh->setStatus(HostStatus::connecting);
     BOOST_LOG_TRIVIAL(debug) << "Exiting connectResolved with outgoing sessions: " << sessions
                              << ", unauthenticated: "  << unauthsessions;
   }

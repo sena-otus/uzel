@@ -17,8 +17,10 @@ namespace uzel {
   class RemoteHostToConnect
   {
   public:
-    explicit RemoteHostToConnect(std::string hostname)
-      : m_hostname{std::move(hostname)}, m_statusChangeTS{std::chrono::steady_clock::now()}
+    using shr_t = std::shared_ptr<RemoteHostToConnect>;
+    explicit RemoteHostToConnect(std::string hostname, std::string service)
+      : m_hostname{std::move(hostname)}, m_service(std::move(service)),
+        m_statusChangeTS{std::chrono::steady_clock::now()}
       {
       }
 
@@ -29,7 +31,8 @@ namespace uzel {
 
     [[nodiscard]] HostStatus status() const {return m_status; }
     [[nodiscard]] std::chrono::steady_clock::time_point statusChangeTS() const {return m_statusChangeTS; }
-    [[nodiscard]] std::string hostname() const {return m_hostname;}
+    [[nodiscard]] const std::string& hostname() const {return m_hostname;}
+    [[nodiscard]] const std::string& service() const {return m_service;}
 
     void setAddr(const boost::asio::ip::address &addr) {
       m_addr=addr;
@@ -38,6 +41,7 @@ namespace uzel {
 
   private:
     std::string m_hostname;
+    std::string m_service;
     boost::asio::ip::address m_addr;
     HostStatus m_status{HostStatus::initial};
     std::chrono::steady_clock::time_point m_statusChangeTS;
@@ -49,12 +53,13 @@ namespace uzel {
   class OutgoingManager final
   {
   public:
-    using UMap = std::unordered_map<std::string, RemoteHostToConnect>;
+    using UMap = std::unordered_map<std::string, RemoteHostToConnect::shr_t>;
 
     explicit OutgoingManager(
       NetAppContext::shr_t,
       const uzel::IpToSession &ipToSession,
-      const uzel::NodeToSession &nodeToSession);
+      const uzel::NodeToSession &nodeToSession,
+      unsigned port);
 
     OutgoingManager(OutgoingManager &&) = delete;
     OutgoingManager &operator=(const OutgoingManager &) = delete;
@@ -82,8 +87,8 @@ namespace uzel {
   private:
     void scheduleNext(int seconds);
     void startConnecting();
-    void startResolving(RemoteHostToConnect &rh);
-    void connectResolved(const boost::system::error_code ec, const boost::asio::ip::tcp::resolver::results_type rezit, RemoteHostToConnect &rh);
+    void startResolving(RemoteHostToConnect::shr_t rh);
+    void connectResolved(const boost::system::error_code ec, const boost::asio::ip::tcp::resolver::results_type rezit, RemoteHostToConnect::shr_t rh);
 
 
 // continue private section: variable members
@@ -93,6 +98,7 @@ namespace uzel {
     const uzel::IpToSession &m_ipToSession;
     const uzel::NodeToSession &m_nodeToSession;
     UMap m_connectTo; ///!< map remote hostnames to be connected to their status
+    unsigned m_port;
     const int RefreshHostStatus_sec{15};
     const int DelayReconnect_sec{30};
     const int ActionTimeout_sec{15};
