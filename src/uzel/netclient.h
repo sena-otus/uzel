@@ -1,6 +1,5 @@
 #pragma once
 
-#include "aresolver.h"
 #include "session.h"
 #include "netappcontext.h"
 
@@ -20,12 +19,6 @@ namespace uzel
        * @param io_context asio io context
        * @param port TCP port to connectect */
     NetClient(boost::asio::io_context& io_context, unsigned short port);
-
-      // NetClient(const NetClient &) = delete;
-      // NetClient(NetClient &&) = delete;
-      // NetClient &operator=(const NetClient &) = delete;
-      // NetClient &operator=(NetClient &&) = delete;
-      // ~NetClient() override = default;
 
     void send(uzel::Msg::shr_t msg);
     boost::signals2::signal<void ()> s_authSuccess;

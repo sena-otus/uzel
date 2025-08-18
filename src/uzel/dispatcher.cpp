@@ -31,7 +31,7 @@ namespace uzel {
         // small optimization: keep capacity growth amortized
       entry = std::make_shared<const HandlerVec>(std::move(newv));
     });
-    return makeDisconnect(cname, id, Bucket::Cname);
+    return makeDisconnect(cname, id);
   }
 
 
@@ -44,7 +44,7 @@ namespace uzel {
       newv.emplace_back(id, std::move(h));
       m_anyPost = std::make_shared<const HandlerShrVec>(std::move(newv));
     });
-    return makeDisconnect(std::string{}, id, Bucket::AnyPost);
+    return makeDisconnect(std::string{}, id);
   }
 
 
@@ -73,13 +73,13 @@ namespace uzel {
   }
 
 
-  MsgDispatcher::Connection MsgDispatcher::makeDisconnect(std::string cname, Id id, Bucket bucket)
+  MsgDispatcher::Connection MsgDispatcher::makeDisconnect(std::string cname, Id id)
   {
     std::weak_ptr<MsgDispatcher> wself = this->shared_from_this();
-    return Connection([wself, cname = std::move(cname), id, bucket]{
+    return Connection([wself, cname = std::move(cname), id]{
       if (auto self = wself.lock()) {
-        boost::asio::dispatch(self->m_strand, [self, cname, id, bucket]{
-          if (bucket == Bucket::Cname) {
+        boost::asio::dispatch(self->m_strand, [self, cname, id]{
+          if (!cname.empty()) {
             auto it = self->m_handlers.find(cname);
             if (it == self->m_handlers.end() || !it->second) return;
             HandlerVec newhv = *it->second;

@@ -69,8 +69,7 @@ namespace uzel {
       return m_strand.get_inner_executor();
     }
   private:
-    enum class Bucket { Cname, AnyPost };
-    Connection makeDisconnect(std::string cname, Id id, Bucket bucket);
+    Connection makeDisconnect(std::string cname, Id id);
       // members
     boost::asio::strand<boost::asio::any_io_executor> m_strand;
       // cname -> snapshot of handlers
