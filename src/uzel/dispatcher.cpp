@@ -27,8 +27,10 @@ namespace uzel {
     boost::asio::dispatch(m_strand, [this, cname, id, handler = std::move(handler)]() mutable {
       auto& entry = m_handlers[cname];
       HandlerVec newv = entry ? *entry : HandlerVec{};
+        // do not modify original vector, but create a new shared_ptr<HandlerVec>,
+        // so that we can also register/unregister on the fly from any handler without
+        // a danger to invalidate the iterator in dispatch() loop
       newv.emplace_back(id, std::move(handler));
-        // small optimization: keep capacity growth amortized
       entry = std::make_shared<const HandlerVec>(std::move(newv));
     });
     return makeDisconnect(cname, id);
@@ -52,7 +54,8 @@ namespace uzel {
   {
     assertShared();
 
-      // capture snapshot pointers (cheap) and iterate
+      // capture snapshot pointers (instead of copying) and iterate, see also
+      // explanation in registerHandler()
     boost::asio::dispatch(m_strand, [self = shared_from_this(), msg = std::move(msg)]{
       const auto cname = msg->cname();
 
