@@ -16,14 +16,11 @@ public:
   explicit NetPrinter(boost::asio::io_context& io_context)
     : NetClient(io_context, 32300)
   {
-    m_ping = netctx()->dispatcher()->registerHandler("ping", [this](const uzel::Msg &msg) {
-      BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "Got message: " << "ping";
+    netctx()->dispatcher()->registerHandler("ping", [this](const uzel::Msg &msg) {
+      BOOST_LOG_TRIVIAL(info) << "Got message: " << "ping";
       send(std::make_shared<uzel::Msg>(msg.from(), msg));
     });
   }
-
-private:
-  uzel::MsgDispatcher::Connection m_ping;
 };
 
 

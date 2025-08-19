@@ -20,10 +20,10 @@ NetServer::NetServer(io::io_context& io_context, unsigned short port)
     m_outman(m_netctx, m_ipToSession, m_nodeToSession, port)
 {
     // install handle for priority message
-  m_priorityH = m_netctx->dispatcher()->registerHandler("priority", [this](const uzel::Msg &msg){ handlePriorityMsg(msg); });
+  m_priorityH = m_netctx->dispatcher()->registerHandlerScoped("priority", [this](const uzel::Msg &msg){ handlePriorityMsg(msg); });
 
       // install special handler to route messages
-  m_anyH = m_netctx->dispatcher()->registerAnyPost([this](uzel::Msg::shr_t msg){ handleAny(msg); });
+  m_anyH = m_netctx->dispatcher()->registerAnyPostScoped([this](uzel::Msg::shr_t msg){ handleAny(msg); });
 
     // accept connections
   do_accept();
@@ -207,7 +207,7 @@ void NetServer::addAuthSessionToRemote(const std::string &rnode, uzel::session::
 void NetServer::auth(uzel::session::shr_t ss)
 {
   if(ss->peerIsLocal()) {
-    BOOST_LOG_TRIVIAL(debug) << DBGOUTF << "new local connection, store local session with name " << ss->peerApp();
+    BOOST_LOG_TRIVIAL(debug) << "new local connection, store local session with name " << ss->peerApp();
       // if local app allows multiple instances, it should add pid to
       // the appname during auth, something like "usender:1251"
       // currently only single-instance applications are allowed

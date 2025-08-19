@@ -67,6 +67,6 @@ private:
   std::map<std::string, uzel::session::shr_t> m_locals;
   uzel::NodeToSession m_nodeToSession; ///<! map nodes to sessions
   uzel::OutgoingManager m_outman;
-  uzel::MsgDispatcher::Connection m_priorityH;
-  uzel::MsgDispatcher::Connection m_anyH;
+  uzel::MsgDispatcher::ScopedConnection m_priorityH;
+  uzel::MsgDispatcher::ScopedConnection m_anyH;
 };
