@@ -19,12 +19,18 @@ namespace uzel {
 #endif
   }
 
+  MsgDispatcher::Id MsgDispatcher::nextIdOnStrand() {
+    Id id;
+    boost::asio::dispatch(m_strand, [this, &id]{ id = m_nextId++; });
+    return id;
+  }
+
 
   MsgDispatcher::Connection MsgDispatcher::registerHandler(const std::string& cname, Handler handler)
   {
     assertShared();
-    const auto id = m_nextId++;
-    boost::asio::dispatch(m_strand, [this, cname, id, handler = std::move(handler)]() mutable {
+    const auto id = nextIdOnStrand();
+    boost::asio::dispatch(m_strand, [this, id, cname, handler = std::move(handler)]() mutable {
       auto& entry = m_handlers[cname];
       HandlerVec newv = entry ? *entry : HandlerVec{};
         // do not modify original vector, but create a new shared_ptr<HandlerVec>,
@@ -33,22 +39,30 @@ namespace uzel {
       newv.emplace_back(id, std::move(handler));
       entry = std::make_shared<const HandlerVec>(std::move(newv));
     });
-    return makeDisconnect(cname, id);
+    return {weak_from_this(), cname, id};
   }
 
+  MsgDispatcher::ScopedConnection MsgDispatcher::registerHandlerScoped(const std::string& cname, Handler handler)
+  {
+    return ScopedConnection(registerHandler(cname, handler));
+  }
 
   MsgDispatcher::Connection MsgDispatcher::registerAnyPost(HandlerShr handler)
   {
     assertShared();
-    const auto id = m_nextId++;
+    const auto id = nextIdOnStrand();
     boost::asio::dispatch(m_strand, [this, id, h = std::move(handler)]() mutable {
       HandlerShrVec newv = m_anyPost ? *m_anyPost : HandlerShrVec{};
       newv.emplace_back(id, std::move(h));
       m_anyPost = std::make_shared<const HandlerShrVec>(std::move(newv));
     });
-    return makeDisconnect(std::string{}, id);
+    return {weak_from_this(), std::string{}, id};
   }
 
+  MsgDispatcher::ScopedConnection MsgDispatcher::registerAnyPostScoped(HandlerShr handler)
+  {
+    return ScopedConnection(registerAnyPost(handler));
+  }
 
   void MsgDispatcher::dispatch(Msg::shr_t msg)
   {
@@ -68,40 +82,54 @@ namespace uzel {
         if (auto it = self->m_handlers.find(cname); it != self->m_handlers.end()) {
           per = it->second;
         }
-        if (per)  for (const auto& kv : *per)  kv.second(*msg);
+        if (per)  for (const auto& kv : *per)  {
+            try {
+              kv.second(*msg);
+            }
+            catch (const std::exception& e) { BOOST_LOG_TRIVIAL(error) << "handler threw: " << e.what(); }
+            catch (...) { BOOST_LOG_TRIVIAL(error) << "handler threw unknown"; }
+          }
       }
       HandlerShrVecPtr post = self->m_anyPost;
-      if (post) for (const auto& kv : *post) kv.second(msg);
+      if (post) for (const auto& kv : *post) {
+          try {
+            kv.second(msg);
+          }
+          catch (const std::exception& e) { BOOST_LOG_TRIVIAL(error) << "post handler threw: " << e.what(); }
+          catch (...) { BOOST_LOG_TRIVIAL(error) << "post handler threw unknown"; }
+        }
     });
   }
 
-
-  MsgDispatcher::Connection MsgDispatcher::makeDisconnect(std::string cname, Id id)
+  void MsgDispatcher::disconnectImpl(const std::string& cname, Id id)
   {
-    std::weak_ptr<MsgDispatcher> wself = this->shared_from_this();
-    return Connection([wself, cname = std::move(cname), id]{
-      if (auto self = wself.lock()) {
-        boost::asio::dispatch(self->m_strand, [self, cname, id]{
-          if (!cname.empty()) {
-            auto it = self->m_handlers.find(cname);
-            if (it == self->m_handlers.end() || !it->second) return;
-            HandlerVec newhv = *it->second;
-            newhv.erase(std::remove_if(newhv.begin(), newhv.end(),
-                                       [&](auto& kv){ return kv.first == id; }),
-                        newhv.end());
-            if (newhv.empty()) self->m_handlers.erase(it);
-            else it->second = std::make_shared<const HandlerVec>(std::move(newhv));
-          } else {
-            if (!self->m_anyPost) return;
-            HandlerShrVec newhv = *self->m_anyPost;
-            newhv.erase(std::remove_if(newhv.begin(), newhv.end(),
-                                       [&](auto& kv){ return kv.first == id; }),
-                        newhv.end());
-            if (newhv.empty()) self->m_anyPost.reset();
-            else self->m_anyPost = std::make_shared<const HandlerShrVec>(std::move(newhv));
-          }
-        });
+    boost::asio::dispatch(m_strand, [this, cname, id] {
+      if(!cname.empty())
+      {
+        auto it = m_handlers.find(cname);
+        if (it == m_handlers.end() || !it->second) {
+          return;
+        }
+        HandlerVec nv = *it->second;
+        nv.erase(std::remove_if(nv.begin(), nv.end(),
+                                [&](auto& item){ return item.first == id; }),
+                 nv.end());
+        if (nv.empty()) m_handlers.erase(it);
+        else it->second = std::make_shared<const HandlerVec>(std::move(nv));
+      } else {
+          // empty cname -> any handler
+        if (!m_anyPost) return;
+        HandlerShrVec nv = *m_anyPost;
+        nv.erase(std::remove_if(nv.begin(), nv.end(),
+                                [&](auto& item){ return item.first == id; }),
+                 nv.end());
+        if (nv.empty()) {
+          m_anyPost.reset();
+        } else {
+          m_anyPost = std::make_shared<const HandlerShrVec>(std::move(nv));
+        }
       }
     });
   }
+
 }
