@@ -60,7 +60,6 @@ namespace uzel
       auto unauth = std::make_shared<session>(m_netctx, std::move(sock), uzel::Direction::outgoing, rezit->endpoint().address(), rezit->host_name());
       unauth->s_connect_error.connect([&](const std::string &){ reconnectAfterDelay();});
       unauth->s_auth.connect([&](session::shr_t ss){ auth(ss); });
-//    unauth->s_dispatch.connect([&](uzel::Msg::shr_t msg, session::shr_t ss){ dispatch(msg, ss);});
       unauth->startConnection(rezit);
     }
   }
@@ -90,5 +89,4 @@ namespace uzel
   {
     m_locals["userver"]->putOutQueue(msg);
   }
-
 }
