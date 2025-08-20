@@ -103,6 +103,7 @@ namespace uzel {
     if(ec) {
       BOOST_LOG_TRIVIAL(error) << "error resolving '" << rh->hostname() << "': "<<  ec.message();
       rh->setStatus(HostStatus::resolving_error);
+        // poke, so we will try to reconnect, if necessary
       poke();
       return;
     }
@@ -113,7 +114,7 @@ namespace uzel {
 
 
       // If we have 1 outgoing authenticated session to that IP and
-      // another authenticated session (with any IP, incoming or outgoing)
+      // another authenticated session with any IP, incoming or outgoing,
       // with the same remote node, then do not create one more connection,
       // mark that remote name as "connected" and return.
       //
@@ -129,6 +130,16 @@ namespace uzel {
       //
       // Recomendation: remote nodes names that are resolvable to their IP
       // make life simpler.
+      //
+      // Possible optimizations:
+      // 1. Now we create 2 outgoing connections at the same time (if
+      // there are no authenticated connections to that IP). That could
+      // be optimized:
+      // first create single connection, authenticate and wait several
+      // seconds, because remote will connect back, if possible.
+      // 2. For that to happen, connect back after accepting and
+      // authentication of the remote node (resolve remote node name and
+      // connect to that IP).
 
 
     size_t sessions{0};
@@ -204,6 +215,7 @@ namespace uzel {
 
       unauth->s_closed.connect([&,rh]() {
         rh->setStatus(HostStatus::closed);
+          // poke, so we will try to reconnect if necessary
         poke();
       });
 
