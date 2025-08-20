@@ -61,6 +61,7 @@ namespace uzel
     [[nodiscard]] const ptree& pbody() const;
       /** throws if there is no cname in header */
     [[nodiscard]] const std::string &cname() const;
+    void setCname(const std::string &cname);
       /** message must be delivered (also) to local host and this app */
     [[nodiscard]] bool toMe() const;
       /** message destination address (also) matches with other hosts and apps */
@@ -72,7 +73,6 @@ namespace uzel
     std::weak_ptr<session> origin() const { return m_origin; }
   private:
     void setDest(const Addr &dest);
-    void setCname(const std::string &cname);
     void updateDest();
     void updateFrom();
     void setFromLocal();
