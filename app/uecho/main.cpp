@@ -1,4 +1,3 @@
-#include "uzel/dbg.h"
 #include "uzel/dispatcher.h"
 #include <boost/log/trivial.hpp>
 #include <uzel/netclient.h>
@@ -18,7 +17,9 @@ public:
   {
     netctx()->dispatcher()->registerHandler("ping", [this](const uzel::Msg &msg) {
       BOOST_LOG_TRIVIAL(info) << "Got message: " << "ping";
-      send(std::make_shared<uzel::Msg>(msg.from(), msg));
+      auto responce = std::make_shared<uzel::Msg>(msg.from(), msg);
+      responce->setCname("pong");
+      send(responce);
     });
   }
 };
