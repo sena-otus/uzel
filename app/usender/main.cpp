@@ -38,12 +38,14 @@ public:
     m_sendTimer.async_wait([this](const boost::system::error_code&  /*ec*/){sendMsg();});
 
     uzel::Msg::ptree msgbody;
-    msgbody.put("payload", "ping");
+    msgbody.put("serial", m_serial);
     send(std::make_shared<uzel::Msg>(m_addrto, "ping", std::move(msgbody)));
+    m_serial++;
   }
 private:
   boost::asio::steady_timer m_sendTimer;
   uzel::Addr m_addrto;
+  size_t m_serial{0};
 };
 
 
