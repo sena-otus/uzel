@@ -1,12 +1,12 @@
 #include "uzel/addr.h"
 #include "uzel/msg.h"
 #include "uzel/dbg.h"
-#include "uzel/session.h"
-#include <boost/log/trivial.hpp>
-#include <memory>
 #include <uzel/netclient.h>
 
+#include <boost/log/trivial.hpp>
+#include <memory>
 #include <utility>
+#include <iostream>
 
 /** simple app that will send a message to echo every 2 seconds */
 
@@ -24,12 +24,10 @@ public:
       s_authSuccess.connect([&](){
         BOOST_LOG_TRIVIAL(debug) << DBGOUT << "auth is fired, calling sendMsg()";
       sendMsg();});
+      netctx()->dispatcher()->registerHandler("pong", [](const uzel::Msg& msg){
+        std::cout << "Got pong with serial" << msg.pbody().get<unsigned>("serial", 0) << "\n";
+      });
     }
-
-  void dispatch(uzel::Msg::shr_t msg, uzel::session::shr_t)
-  {
-    BOOST_LOG_TRIVIAL(debug) << "Got message: " << msg->str();
-  }
 
   void sendMsg()
   {
