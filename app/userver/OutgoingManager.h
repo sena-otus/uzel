@@ -18,9 +18,10 @@ namespace uzel {
   {
   public:
     using shr_t = std::shared_ptr<RemoteHostToConnect>;
-    explicit RemoteHostToConnect(std::string hostname, std::string service)
+    explicit RemoteHostToConnect(std::string hostname, std::string service, unsigned wantedConnections)
       : m_hostname{std::move(hostname)}, m_service(std::move(service)),
-        m_statusChangeTS{std::chrono::steady_clock::now()}
+        m_statusChangeTS{std::chrono::steady_clock::now()},
+        m_wantedConnections(wantedConnections)
       {
       }
 
@@ -38,6 +39,7 @@ namespace uzel {
       m_addr=addr;
     }
 
+    [[nodiscard]] unsigned wantedConnections() const {return m_wantedConnections;}
 
   private:
     std::string m_hostname;
@@ -45,7 +47,7 @@ namespace uzel {
     boost::asio::ip::address m_addr;
     HostStatus m_status{HostStatus::initial};
     std::chrono::steady_clock::time_point m_statusChangeTS;
-    size_t m_sessions{0};
+    unsigned m_wantedConnections{2};
   };
 
 
@@ -59,7 +61,7 @@ namespace uzel {
       NetAppContext::shr_t,
       const uzel::IpToSession &ipToSession,
       const uzel::NodeToSession &nodeToSession,
-      unsigned port);
+      unsigned port, unsigned wantedConnections);
 
     OutgoingManager(OutgoingManager &&) = delete;
     OutgoingManager &operator=(const OutgoingManager &) = delete;
@@ -99,6 +101,7 @@ namespace uzel {
     const uzel::NodeToSession &m_nodeToSession;
     UMap m_connectTo; ///!< map remote hostnames to be connected to their status
     unsigned m_port;
+    unsigned m_wantedConnections;
     const int RefreshHostStatus_sec{15};
     const int DelayReconnect_sec{30};
     const int ActionTimeout_sec{15};

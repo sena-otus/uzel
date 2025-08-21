@@ -17,7 +17,7 @@ namespace sys = boost::system;
 NetServer::NetServer(io::io_context& io_context, unsigned short port)
   : m_netctx(std::make_shared<uzel::NetAppContext>(io_context)),
     m_acceptor(io_context, tcp::endpoint(tcp::v6(), port)),
-    m_outman(m_netctx, m_ipToSession, m_nodeToSession, port)
+    m_outman(m_netctx, m_ipToSession, m_nodeToSession, port, 2)
 {
     // install handle for priority message
   m_priorityH = m_netctx->dispatcher()->registerHandlerScoped("priority", [this](const uzel::Msg &msg){ handlePriorityMsg(msg); });

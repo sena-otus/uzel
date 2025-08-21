@@ -2,6 +2,7 @@
 #include "remote.h"
 
 #include <boost/log/trivial.hpp>
+#include <stdexcept>
 #include <uzel/uconfig.h>
 #include <uzel/dbg.h>
 #include <uzel/session.h>
@@ -14,10 +15,12 @@ namespace uzel {
   OutgoingManager::OutgoingManager(
     NetAppContext::shr_t netctx,
     const uzel::IpToSession &ipToSession,
-    const uzel::NodeToSession &nodeToSession, unsigned port)
+    const uzel::NodeToSession &nodeToSession,
+    unsigned port, unsigned wantedConnections)
     : m_netctx(std::move(netctx)), m_strand(m_netctx->iocontext().get_executor()), m_timer(m_strand),
       m_ipToSession(ipToSession), m_nodeToSession(nodeToSession),
-      m_port(port)
+      m_port(port),
+      m_wantedConnections(wantedConnections)
   {
   }
 
@@ -25,7 +28,7 @@ namespace uzel {
     if(uzel::UConfigS::getUConfig().isLocalNode(hname)) {
       return;
     }
-    m_connectTo.emplace(hname, std::make_shared<RemoteHostToConnect>(hname, std::to_string(m_port)));
+    m_connectTo.emplace(hname, std::make_shared<RemoteHostToConnect>(hname, std::to_string(m_port), m_wantedConnections));
   }
 
 
@@ -113,6 +116,11 @@ namespace uzel {
     rh->setAddr(rezit->endpoint().address());
 
 
+      // Logic for wantedConnections == 1:
+      // If there is 1+ outgoing authenticated session to that IP, then stop
+      // If there is 1 outgoing unauthenticated session to that IP, then wait
+      //
+      // Logic for wantedConnections == 2:
       // If we have 1 outgoing authenticated session to that IP and
       // another authenticated session with any IP, incoming or outgoing,
       // with the same remote node, then do not create one more connection,
@@ -149,8 +157,9 @@ namespace uzel {
     auto ipit = m_ipToSession.find(rezit->endpoint().address());
 
     if(ipit == m_ipToSession.end()|| ipit->second.empty()) {
-      BOOST_LOG_TRIVIAL(debug) << "there are no sessions for IP '"<< rezit->endpoint() << ", will create 2 connections";
-      sessionsToCreate = 2;
+      BOOST_LOG_TRIVIAL(debug) << "there are no sessions for IP '"<< rezit->endpoint()
+                               << ", will create "<< rh->wantedConnections()<< " connections";
+      sessionsToCreate = rh->wantedConnections();
     } else {
       for(auto && sit : ipit->second) {
         BOOST_LOG_TRIVIAL(debug) << "found session "<< sit << " for IP '"<< rezit->endpoint();
@@ -171,6 +180,8 @@ namespace uzel {
                 if(rh->status() != +HostStatus::connected) { rh->setStatus(HostStatus::connected); }
                 return;
               }
+            } else {
+              BOOST_LOG_TRIVIAL(error) << "that can never happen: authenticated session is immediately added to n_nodeToSession!";
             }
           }
         }   else {
@@ -178,7 +189,7 @@ namespace uzel {
         }
       }
         // here we know, that we are not done with connecting
-      if(sessions >= 2) {
+      if(sessions >= rh->wantedConnections()) {
         if(unauthsessions > 0) {
             // wait for connection and authentication
           if(rh->status() != +HostStatus::connecting) { rh->setStatus(HostStatus::connecting); }
@@ -197,7 +208,7 @@ namespace uzel {
           //   create one more connection
         sessionsToCreate = 1;
       } else {
-        sessionsToCreate = 2 - sessions;
+        sessionsToCreate = rh->wantedConnections() - sessions;
       }
     }
 

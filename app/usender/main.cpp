@@ -25,7 +25,7 @@ public:
         BOOST_LOG_TRIVIAL(debug) << DBGOUT << "auth is fired, calling sendMsg()";
       sendMsg();});
       netctx()->dispatcher()->registerHandler("pong", [](const uzel::Msg& msg){
-        std::cout << "Got pong with serial" << msg.pbody().get<unsigned>("serial", 0) << "\n";
+        std::cout << "Got pong with serial " << msg.pbody().get<unsigned>("serial", 0) << "\n";
       });
     }
 
