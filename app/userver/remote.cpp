@@ -149,7 +149,7 @@ namespace uzel
       {
         m_sessionWaitForRemote.erase(ssi);
         BOOST_LOG_TRIVIAL(debug) << "excluded, new waiting list size is " << m_sessionWaitForRemote.size();
-        return;
+        break;
       }
     }
     if(m_sessionH == ss) m_sessionH.reset();

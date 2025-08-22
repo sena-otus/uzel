@@ -7,6 +7,7 @@ add_library(uzel
   netclient.cpp
   netappcontext.cpp
   dispatcher.cpp
+  OutgoingManager.cpp
 )
 
 target_link_libraries(uzel PUBLIC Boost::boost Boost::thread Boost::system Boost::log)

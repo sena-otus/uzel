@@ -1,11 +1,12 @@
 #include "OutgoingManager.h"
-#include "remote.h"
+
+#include "uconfig.h"
+#include "dbg.h"
+#include "session.h"
 
 #include <boost/log/trivial.hpp>
+#include <optional>
 #include <stdexcept>
-#include <uzel/uconfig.h>
-#include <uzel/dbg.h>
-#include <uzel/session.h>
 
 using boost::asio::ip::tcp;
 namespace sys = boost::system;
@@ -13,19 +14,19 @@ namespace sys = boost::system;
 namespace uzel {
 
   OutgoingManager::OutgoingManager(
-    NetAppContext::shr_t netctx,
-    const uzel::IpToSession &ipToSession,
-    const uzel::NodeToSession &nodeToSession,
-    unsigned port, unsigned wantedConnections)
-    : m_netctx(std::move(netctx)), m_strand(m_netctx->iocontext().get_executor()), m_timer(m_strand),
-      m_ipToSession(ipToSession), m_nodeToSession(nodeToSession),
-      m_port(port),
-      m_wantedConnections(wantedConnections)
-  {
-  }
+      NetAppContext::shr_t netctx,
+      const IpToSession &ipToSession,
+      ConnectedFn connected,
+      unsigned port, unsigned wantedConnections)
+      : m_netctx(std::move(netctx)), m_strand(m_netctx->iocontext().get_executor()), m_timer(m_strand),
+        m_ipToSession(ipToSession), m_connected(std::move(connected)),
+        m_port(port),
+        m_wantedConnections(wantedConnections)
+      {
+      }
 
   void OutgoingManager::startConnecting(const std::string &hname) {
-    if(uzel::UConfigS::getUConfig().isLocalNode(hname)) {
+    if(UConfigS::getUConfig().isLocalNode(hname)) {
       return;
     }
     m_connectTo.emplace(hname, std::make_shared<RemoteHostToConnect>(hname, std::to_string(m_port), m_wantedConnections));
@@ -170,22 +171,20 @@ namespace uzel {
             ++unauthsessions;
           } else {
             BOOST_LOG_TRIVIAL(debug) << "it is authenticated as " << sit->peerNode();
-            auto nodeit = m_nodeToSession.find(sit->peerNode());
-            if(nodeit != m_nodeToSession.end())
-            {
-              if(nodeit->second.connected())
-              {
+            std::optional<bool> opt_connected = m_connected(sit->peerNode());
+            if(opt_connected) {
+              if(*opt_connected) {
                 BOOST_LOG_TRIVIAL(debug) << "there are already enough authenticated sessions with '" << sit->peerNode()
                                          << "', so do not create a new one, set status to connected";
                 if(rh->status() != +HostStatus::connected) { rh->setStatus(HostStatus::connected); }
                 return;
               }
-            } else {
-              BOOST_LOG_TRIVIAL(error) << "that can never happen: authenticated session is immediately added to n_nodeToSession!";
+            } else  {
+              BOOST_LOG_TRIVIAL(error) << "that should never happen: authenticated session must be immediately added to n_nodeToSession!";
             }
           }
-        }   else {
-          BOOST_LOG_TRIVIAL(debug) << "it is incoming - skip";
+        } else {
+          BOOST_LOG_TRIVIAL(debug) << "it is incoing... skip";
         }
       }
         // here we know, that we are not done with connecting

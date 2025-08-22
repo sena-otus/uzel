@@ -1,12 +1,14 @@
 #pragma once
 
-#include "remote.h"
-#include "uzel/netappcontext.h"
-#include "uzel/session.h"
-#include <uzel/enum.h>
-#include <uzel/aresolver.h>
+#include "netappcontext.h"
+#include "session.h"
+#include "enum.h"
+#include "aresolver.h"
+
+#include <boost/log/trivial.hpp>
 #include <boost/asio.hpp>
 #include <chrono>
+#include <utility>
 
 
 BETTER_ENUM(HostStatus, int8_t, initial, resolving, resolving_error, connecting, connection_error, connected, closed); //NOLINT
@@ -56,11 +58,12 @@ namespace uzel {
   {
   public:
     using UMap = std::unordered_map<std::string, RemoteHostToConnect::shr_t>;
+    using ConnectedFn = std::function<std::optional<bool>(const std::string&)>;
 
     explicit OutgoingManager(
-      NetAppContext::shr_t,
-      const uzel::IpToSession &ipToSession,
-      const uzel::NodeToSession &nodeToSession,
+      NetAppContext::shr_t netctx,
+      const IpToSession &ipToSession,
+      ConnectedFn connected,
       unsigned port, unsigned wantedConnections);
 
     OutgoingManager(OutgoingManager &&) = delete;
@@ -68,7 +71,6 @@ namespace uzel {
     OutgoingManager &operator=(OutgoingManager &&) = delete;
     OutgoingManager(const OutgoingManager &other) = delete;
     ~OutgoingManager() = default;
-
 
     void startConnecting(const std::string &hname);
 
@@ -98,7 +100,7 @@ namespace uzel {
     boost::asio::strand<boost::asio::any_io_executor> m_strand;
     boost::asio::steady_timer m_timer;
     const uzel::IpToSession &m_ipToSession;
-    const uzel::NodeToSession &m_nodeToSession;
+    ConnectedFn m_connected;
     UMap m_connectTo; ///!< map remote hostnames to be connected to their status
     unsigned m_port;
     unsigned m_wantedConnections;
