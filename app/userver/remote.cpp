@@ -1,6 +1,7 @@
 #include "remote.h"
 #include "uzel/dbg.h"
 #include "uzel/session.h"
+#include "uzel/priority.h"
 
 #include <boost/log/trivial.hpp>
 #include <stdexcept>
@@ -39,7 +40,6 @@ namespace uzel
         BOOST_LOG_TRIVIAL(debug) << "got high priority connection with '" << m_node
                                  << "' = " << ss;
         m_sessionH = ss;
-        ss->setPriority(uzel::Priority::high);
           // it is not necessary both sides to have same priority on the channel
           // but let's do it
         uzel::Msg::ptree body{};
@@ -49,7 +49,6 @@ namespace uzel
       } else if(!m_sessionL) {
         BOOST_LOG_TRIVIAL(debug) << "got low priority connection with '" << m_node
                                  << "' = " << ss;
-        ss->setPriority(uzel::Priority::low);
         m_sessionL = ss;
         uzel::Msg::ptree body{};
         body.add("priority", static_cast<uzel::Priority>(uzel::Priority::low));
@@ -59,7 +58,6 @@ namespace uzel
                 m_sessionH->direction() == +Direction::incoming &&
                 m_sessionL->direction() == +Direction::incoming &&
                 ss->direction() == +Direction::outgoing) {
-        ss->setPriority(uzel::Priority::control);
         m_sessionC = ss;
         uzel::Msg::ptree body{};
         body.add("priority", static_cast<uzel::Priority>(uzel::Priority::control));
@@ -76,13 +74,8 @@ namespace uzel
   {
     if (auto ss = msg.origin().lock()) {
       size_t erased = m_sessionWaitForRemote.erase(ss);
-      if(ss->priority() != +Priority::undefined) {
-        if(ss == m_sessionH || ss == m_sessionL) {
-          BOOST_LOG_TRIVIAL(error) << m_node << ": attempt to reset session priority, ignoring...";
-          return;
-        }
-        BOOST_LOG_TRIVIAL(error) << m_node << ": closing weird stray session " << ss;
-        ss->gracefullClose("stray connection");
+      if(ss == m_sessionH || ss == m_sessionL) {
+        BOOST_LOG_TRIVIAL(error) << m_node << ": attempt to reset session priority, ignoring...";
         return;
       }
       auto prio = msg.pbody().get<Priority>("priority", Priority::undefined);
@@ -90,7 +83,6 @@ namespace uzel
       {
         case Priority::low:
         {
-          ss->setPriority(Priority::low);
           auto sessionToClose = m_sessionL;
           m_sessionL = ss;
           BOOST_LOG_TRIVIAL(debug) << m_node << ": got low priority session";
@@ -101,7 +93,6 @@ namespace uzel
         }
         case Priority::high:
         {
-          ss->setPriority(Priority::high);
           auto sessionToClose = m_sessionH;
           m_sessionH = ss;
           BOOST_LOG_TRIVIAL(debug) << m_node << ": got high priority session";
@@ -112,7 +103,6 @@ namespace uzel
         }
         case Priority::control:
         {
-          ss->setPriority(Priority::control);
           auto sessionToClose = m_sessionC;
           m_sessionC = ss;
           BOOST_LOG_TRIVIAL(debug) << m_node << ": got control priority session";
