@@ -3,7 +3,6 @@
 #include "netappcontext.h"
 #include "session.h"
 #include "enum.h"
-#include "aresolver.h"
 
 #include <boost/log/trivial.hpp>
 #include <boost/asio.hpp>
@@ -58,12 +57,38 @@ namespace uzel {
   {
   public:
     using UMap = std::unordered_map<std::string, RemoteHostToConnect::shr_t>;
+
+      /**
+       * Callback function that is passed to the constructor, it
+       * answers the question, if given node name is completely
+       * connected and authenticated.
+       *
+       *  - If remote node with the given is not known, then return
+       *  value is not set.
+       *  - If remote node is known, but is not completely connected,
+       *  for example not all necessary connections are authenticated or
+       *  established, then returned value is set to false.
+       *  - If remote node is completely connected, e.g. all necessary
+       *  connections are established, authenticated and initialized,
+       *  then returned value is set to true.
+       *  */
     using ConnectedFn = std::function<std::optional<bool>(const std::string&)>;
 
+      /**
+       * Constructs OutgoingManager.
+       * @param netctx networking context
+       * @param ipTosession reference to IpToSession map
+       * @param connectedFn callback to check if remote node is already
+       * connected, see also ConnectedFn
+       * @param port remote port to connect
+       * @param wantedConnections how many connections should be
+       * established with remote host by default (may vary from host to
+       * host), usually 1 or 2
+       * */
     explicit OutgoingManager(
       NetAppContext::shr_t netctx,
       const IpToSession &ipToSession,
-      ConnectedFn connected,
+      ConnectedFn connectedFn,
       unsigned port, unsigned wantedConnections);
 
     OutgoingManager(OutgoingManager &&) = delete;
@@ -100,7 +125,7 @@ namespace uzel {
     boost::asio::strand<boost::asio::any_io_executor> m_strand;
     boost::asio::steady_timer m_timer;
     const uzel::IpToSession &m_ipToSession;
-    ConnectedFn m_connected;
+    ConnectedFn m_connectedFn;
     UMap m_connectTo; ///!< map remote hostnames to be connected to their status
     unsigned m_port;
     unsigned m_wantedConnections;

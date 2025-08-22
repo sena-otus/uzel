@@ -6,7 +6,6 @@
 
 #include <boost/log/trivial.hpp>
 #include <optional>
-#include <stdexcept>
 
 using boost::asio::ip::tcp;
 namespace sys = boost::system;
@@ -19,7 +18,7 @@ namespace uzel {
       ConnectedFn connected,
       unsigned port, unsigned wantedConnections)
       : m_netctx(std::move(netctx)), m_strand(m_netctx->iocontext().get_executor()), m_timer(m_strand),
-        m_ipToSession(ipToSession), m_connected(std::move(connected)),
+        m_ipToSession(ipToSession), m_connectedFn(std::move(connected)),
         m_port(port),
         m_wantedConnections(wantedConnections)
       {
@@ -171,7 +170,7 @@ namespace uzel {
             ++unauthsessions;
           } else {
             BOOST_LOG_TRIVIAL(debug) << "it is authenticated as " << sit->peerNode();
-            std::optional<bool> opt_connected = m_connected(sit->peerNode());
+            std::optional<bool> opt_connected = m_connectedFn(sit->peerNode());
             if(opt_connected) {
               if(*opt_connected) {
                 BOOST_LOG_TRIVIAL(debug) << "there are already enough authenticated sessions with '" << sit->peerNode()
