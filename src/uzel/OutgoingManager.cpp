@@ -13,16 +13,16 @@ namespace sys = boost::system;
 namespace uzel {
 
   OutgoingManager::OutgoingManager(
-      NetAppContext::shr_t netctx,
-      const IpToSession &ipToSession,
-      ConnectedFn connected,
-      unsigned port, unsigned wantedConnections)
-      : m_netctx(std::move(netctx)), m_strand(m_netctx->iocontext().get_executor()), m_timer(m_strand),
-        m_ipToSession(ipToSession), m_connectedFn(std::move(connected)),
-        m_port(port),
-        m_wantedConnections(wantedConnections)
-      {
-      }
+    NetAppContext::shr_t netctx,
+    const IpToSession &ipToSession,
+    ConnectedFn connected,
+    unsigned port, unsigned wantedConnections)
+    : m_netctx(std::move(netctx)), m_strand(m_netctx->iocontext().get_executor()), m_timer(m_strand),
+      m_ipToSession(ipToSession), m_connectedFn(std::move(connected)),
+      m_port(port),
+      m_wantedConnections(wantedConnections)
+  {
+  }
 
   void OutgoingManager::startConnecting(const std::string &hname) {
     if(UConfigS::getUConfig().isLocalNode(hname)) {
@@ -176,6 +176,7 @@ namespace uzel {
                 BOOST_LOG_TRIVIAL(debug) << "there are already enough authenticated sessions with '" << sit->peerNode()
                                          << "', so do not create a new one, set status to connected";
                 if(rh->status() != +HostStatus::connected) { rh->setStatus(HostStatus::connected); }
+                  // we are done with that host!
                 return;
               }
             } else  {
@@ -183,7 +184,7 @@ namespace uzel {
             }
           }
         } else {
-          BOOST_LOG_TRIVIAL(debug) << "it is incoing... skip";
+          BOOST_LOG_TRIVIAL(debug) << "it is incoming... skip";
         }
       }
         // here we know, that we are not done with connecting
@@ -242,5 +243,4 @@ namespace uzel {
     BOOST_LOG_TRIVIAL(debug) << "Exiting connectResolved with outgoing sessions: " << sessions
                              << ", unauthenticated: "  << unauthsessions;
   }
-
 }

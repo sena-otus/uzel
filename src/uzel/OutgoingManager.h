@@ -60,10 +60,10 @@ namespace uzel {
 
       /**
        * Callback function that is passed to the constructor, it
-       * answers the question, if given node name is completely
+       * answers the question, if given remote name is completely
        * connected and authenticated.
        *
-       *  - If remote node with the given is not known, then return
+       *  - If remote node with the given name is not known, then return
        *  value is not set.
        *  - If remote node is known, but is not completely connected,
        *  for example not all necessary connections are authenticated or
@@ -120,7 +120,7 @@ namespace uzel {
     void connectResolved(const boost::system::error_code ec, const boost::asio::ip::tcp::resolver::results_type rezit, RemoteHostToConnect::shr_t rh);
 
 
-// continue private section: variable members
+      // continue private section: variable members:
     NetAppContext::shr_t m_netctx;
     boost::asio::strand<boost::asio::any_io_executor> m_strand;
     boost::asio::steady_timer m_timer;
